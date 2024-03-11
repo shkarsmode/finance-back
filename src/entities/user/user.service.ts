@@ -1,5 +1,6 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { genSalt, hash } from 'bcrypt';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 
@@ -11,17 +12,16 @@ export class UserService {
     ) {}
 
     public async getUser(id: number): Promise<User> {
-        const user = await this.userRepository.findOne({ where: { id } });
+        const salt = await genSalt(10);
+        const hashedPasword = await hash('monobanktoken', salt);
 
-        if (!user) {
-            throw new HttpException(
-                'User has not been found',
-                HttpStatus.NOT_FOUND,
-            );
-        }
-
-        delete user.password;
-
+        const user = await this.userRepository.create({
+            username: 'Test user',
+            monobankHashedToken: hashedPasword,
+            password: 'password'
+        });
+        await this.userRepository.save(user);
+        console.log(user)
         return user;
     }
 }

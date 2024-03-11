@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Transaction } from "src/entities/transaction/entities/transaction.entity";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('users')
 export class User {
@@ -14,6 +15,6 @@ export class User {
     @Column({ name: 'monobank_hashed_token', type: 'varchar' })
     public monobankHashedToken: string;
 
-    // @OneToMany(() => Transaction, (transaction) => transaction.user)
-    // transactions: Transaction[];
+    @OneToMany(() => Transaction, (transaction) => transaction.user)
+    public transactions: Transaction[];
 }

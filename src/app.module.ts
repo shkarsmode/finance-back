@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
+import { Transaction } from './entities/transaction/entities/transaction.entity';
+import { TransactionModule } from './entities/transaction/transaction.module';
+import { User } from './entities/user/entities/user.entity';
 import { UserModule } from './entities/user/user.module';
 
 @Module({
@@ -20,7 +23,7 @@ import { UserModule } from './entities/user/user.module';
                 username: configService.get<string>('POSTGRES_USER'),
                 database: configService.get<string>('POSTGRES_DATABASE'),
                 synchronize: true,
-                entities: [__dirname + '***.entity{.js, .ts}'],
+                entities: [User, Transaction],
                 extra: {
                     ssl: {
                         rejectUnauthorized: false,
@@ -30,6 +33,7 @@ import { UserModule } from './entities/user/user.module';
             inject: [ConfigService],
         }),
         UserModule,
+        TransactionModule,
     ],
     controllers: [AppController],
     providers: [],
