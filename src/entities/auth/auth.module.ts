@@ -5,7 +5,10 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
 @Module({
-    providers: [AuthService],
+    providers: [
+        AuthService
+    ],
+
     controllers: [AuthController],
     imports: [
         JwtModule.register({
@@ -14,7 +17,7 @@ import { AuthService } from './auth.service';
                 expiresIn: '24h',
             },
         }),
-        forwardRef(() => UserModule)
+        forwardRef(() => UserModule),
     ],
     exports: [AuthService, JwtModule],
 })

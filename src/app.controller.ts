@@ -2,10 +2,9 @@ import { Controller, Get } from '@nestjs/common';
 
 @Controller()
 export class AppController {
-    constructor() {}
 
     @Get()
-    getHello(): string {
-        return 'A finance application works!'
+    public async getHello(): Promise<string> {
+        return 'A finance application works!';
     }
 }

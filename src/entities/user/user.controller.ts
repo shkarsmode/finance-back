@@ -1,5 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
-import { User } from './entities/user.entity';
+import { Controller, Get } from '@nestjs/common';
 import { UserService } from './user.service';
 
 @Controller('users')
@@ -11,11 +10,11 @@ export class UserController {
         return 'hello';
     }
 
-    @Get('/:id')
-    public async getUserById(
-        @Param('id', ParseIntPipe) id: number,
-    ): Promise<User> {
-        const user = await this.userService.getUser(id);
-        return user;
-    }
+    // @Get('/:id')
+    // public async getUserById(
+    //     @Param('id', ParseIntPipe) id: number,
+    // ): Promise<User> {
+    //     const user = await this.userService.getUser(id);
+    //     return user;
+    // }
 }

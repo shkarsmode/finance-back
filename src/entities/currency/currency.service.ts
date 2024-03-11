@@ -1,0 +1,41 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ICurrency } from 'src/interfaces';
+import { Repository } from 'typeorm';
+import { MonobankService } from '../../services/monobank/monobank.service';
+import { Currency } from './entities/currency.entity';
+
+@Injectable()
+export class CurrencyService {
+    constructor(
+        private readonly monobankService: MonobankService,
+        @InjectRepository(Currency)
+        private readonly currencyRepository: Repository<Currency>,
+    ) {}
+
+    public async get(): Promise<ICurrency[]> {
+        const updateTimeToCheck = new Date().getTime() - 60000;
+        const currencies = await this.currencyRepository.find({ 
+            order: { updateAt: 'DESC' },
+            take: 1
+        });
+
+        const currency = currencies[0];
+
+        if (!currency || currency.updateAt < updateTimeToCheck) {
+            console.log('[CurrencyService] currency can be updated');
+            
+            const currencies = await this.monobankService.getActualCurrency();
+
+            const createdCurrency = await this.currencyRepository.create({
+                data: currencies,
+                updateAt: new Date().getTime()
+            });
+
+            return (await this.currencyRepository.save(createdCurrency)).data;
+        }
+
+        console.log('[CurrencyService] currency can`t be updated');
+        return currency.data;
+    }
+}

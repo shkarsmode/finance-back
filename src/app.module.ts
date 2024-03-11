@@ -2,10 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
+import { AuthModule } from './entities/auth/auth.module';
+import { CurrencyModule } from './entities/currency/currency.module';
+import { Currency } from './entities/currency/entities/currency.entity';
 import { Transaction } from './entities/transaction/entities/transaction.entity';
 import { TransactionModule } from './entities/transaction/transaction.module';
 import { User } from './entities/user/entities/user.entity';
 import { UserModule } from './entities/user/user.module';
+
 
 @Module({
     imports: [
@@ -23,7 +27,7 @@ import { UserModule } from './entities/user/user.module';
                 username: configService.get<string>('POSTGRES_USER'),
                 database: configService.get<string>('POSTGRES_DATABASE'),
                 synchronize: true,
-                entities: [User, Transaction],
+                entities: [User, Transaction, Currency],
                 extra: {
                     ssl: {
                         rejectUnauthorized: false,
@@ -34,6 +38,8 @@ import { UserModule } from './entities/user/user.module';
         }),
         UserModule,
         TransactionModule,
+        AuthModule,
+        CurrencyModule,
     ],
     controllers: [AppController],
     providers: [],

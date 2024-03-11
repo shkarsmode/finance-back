@@ -5,15 +5,15 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 export class User {
     @PrimaryGeneratedColumn()
     public id: number;
-    
-    @Column({ name: 'username', type: 'varchar' })
-    public username: string;
 
-    @Column({ name: 'password', type: 'varchar' })
+    @Column({ name: 'email', type: 'varchar', nullable: true })
+    public email: string;
+
+    @Column({ name: 'password', type: 'varchar', nullable: true })
     public password: string;
 
-    @Column({ name: 'monobank_hashed_token', type: 'varchar' })
-    public monobankHashedToken: string;
+    @Column({ name: 'monobankToken', type: 'varchar' })
+    public monobankToken: string;
 
     @OneToMany(() => Transaction, (transaction) => transaction.user)
     public transactions: Transaction[];
