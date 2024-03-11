@@ -1,6 +1,6 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { environment } from 'src/environments';
+import { environment } from '../../environments/environment';
 import { MONOBANK_API } from '../variables';
 import { MonobankService } from './monobank.service';
 

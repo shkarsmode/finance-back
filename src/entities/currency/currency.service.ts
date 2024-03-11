@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ICurrency } from 'src/interfaces';
 import { Repository } from 'typeorm';
+import { ICurrency } from '../../interfaces/currency.interface';
 import { MonobankService } from '../../services/monobank/monobank.service';
 import { Currency } from './entities/currency.entity';
 

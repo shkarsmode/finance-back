@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { ICurrency } from 'src/interfaces';
+import { ICurrency } from '../../interfaces/currency.interface';
 import { MONOBANK_API } from '../variables';
 
 @Injectable()

@@ -1,5 +1,5 @@
-import { ICurrency } from "src/interfaces";
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { ICurrency } from "../../../interfaces/currency.interface";
 
 @Entity('currencies')
 export class Currency {

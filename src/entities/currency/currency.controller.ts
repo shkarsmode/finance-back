@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { ICurrency } from 'src/interfaces';
+import { ICurrency } from '../../interfaces/currency.interface';
 import { CurrencyService } from './currency.service';
 
 @Controller('currency')
