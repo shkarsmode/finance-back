@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MonobankModule } from 'src/services/monobank/monobank.module';
+import { MonobankModule } from '../../services/monobank/monobank.module';
 import { CurrencyController } from './currency.controller';
 import { CurrencyService } from './currency.service';
 import { Currency } from './entities/currency.entity';
