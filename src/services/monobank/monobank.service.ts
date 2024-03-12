@@ -8,8 +8,8 @@ import { MONOBANK_API } from '../variables';
 
 @Injectable()
 export class MonobankService {
-    public lastRequestTime: number;
-    public lastRequestTransactionsTime: number;
+    public lastRequestTime: number = 0;
+    public lastRequestTransactionsTime: number = 0;
 
     constructor(
         private readonly httpService: HttpService,
@@ -41,6 +41,12 @@ export class MonobankService {
                 })
                 .pipe(
                     tap(() => (this.lastRequestTime = new Date().getTime())),
+                    tap(() =>
+                        console.log(
+                            '[Last request time]',
+                            this.lastRequestTime,
+                        ),
+                    ),
                     catchError((error: AxiosError) => {
                         throw 'Too much requests to get currency!';
                     }),
@@ -65,6 +71,12 @@ export class MonobankService {
                 })
                 .pipe(
                     tap(() => (this.lastRequestTransactionsTime = new Date().getTime())),
+                    tap(() => 
+                        console.log(
+                            '[Last request transactions time]', 
+                            this.lastRequestTransactionsTime
+                        )
+                    ),
                     catchError((error: AxiosError) => {
                         throw 'Too much requests to get currency!';
                     }),

@@ -30,6 +30,7 @@ export class TransactionService {
         });
 
         if (
+            !existingTransactions.length ||
             this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
         ) {
             console.log(
