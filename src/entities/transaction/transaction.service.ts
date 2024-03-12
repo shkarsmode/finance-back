@@ -44,10 +44,10 @@ export class TransactionService {
         var seconds = '0' + date.getSeconds();
         var formattedTime =
             hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-            
+
         const updateTimeToCheck = new Date().getTime() - 60000;
 
-        console.log('[LAST REQUEST TRANS TIME]', formattedTime, unix_timestamp < updateTimeToCheck);
+        console.log('[LAST REQUEST TRANS TIME]', formattedTime, 'last request < update time to check', unix_timestamp < updateTimeToCheck);
 
         if (
             !existingTransactions.length ||
