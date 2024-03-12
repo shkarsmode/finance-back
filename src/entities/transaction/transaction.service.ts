@@ -39,10 +39,20 @@ export class TransactionService {
                         endDate: endDate.toISOString(),
                     },
                 ),
-                user: { id: user.id },
+                user,
                 cardId,
             },
         });
+
+        const unix_timestamp = this.monobankService.lastRequestTransactionsTime;
+        var date = new Date(unix_timestamp * 1000);
+        var hours = date.getHours();
+        var minutes = '0' + date.getMinutes();
+        var seconds = '0' + date.getSeconds();
+        var formattedTime =
+            hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+
+        console.log('[LAST REQUEST TRANS TIME]', formattedTime);
 
         if (
             !existingTransactions.length ||

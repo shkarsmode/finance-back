@@ -48,6 +48,9 @@ export class Transaction {
     @Column({ name: 'card_id', type: 'varchar', nullable: true })
     public cardId: string;
 
+    @Column({ name: 'comment', type: 'varchar', nullable: true })
+    public comment: string;
+
     @ManyToOne(() => User, (user) => user.transactions)
     public user: User;
 }
