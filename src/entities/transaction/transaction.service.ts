@@ -26,6 +26,7 @@ export class TransactionService {
             where: {
                 time: Between(startDate.getTime(), endDate.getTime()),
                 user: { id: userId },
+                cardId
             },
         });
 
@@ -37,13 +38,14 @@ export class TransactionService {
                 '[TransactionService] transactions info can be updated',
             );
 
-            const transactionsFromApi =
+            const transactionsFromApi = (
                 await this.monobankService.getTransactions(
                     monobankToken,
                     cardId,
                     startDate.getTime(),
                     endDate.getTime(),
-                );
+                )
+            ).map((transaction) => ({ ...transaction, cardId }));
 
             const updatedTransactions: Transaction[] = [];
 
@@ -60,6 +62,7 @@ export class TransactionService {
                     const newTransaction = this.transactionRepository.create({
                         ...transactionFromApi,
                         user: { id: userId },
+                        cardId
                     });
                     await this.transactionRepository.save(newTransaction);
                     updatedTransactions.push(newTransaction);

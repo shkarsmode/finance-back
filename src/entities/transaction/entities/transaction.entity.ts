@@ -42,8 +42,11 @@ export class Transaction {
     @Column({ name: 'hold', type: 'boolean' })
     public hold: boolean;
 
-    @Column({ name: 'receipt_id', type: 'boolean', nullable: true })
-    readonly receiptId: string;
+    @Column({ name: 'receipt_id', type: 'varchar', nullable: true })
+    public receiptId: string;
+
+    @Column({ name: 'card_id', type: 'varchar', nullable: true })
+    public cardId: string;
 
     @ManyToOne(() => User, (user) => user.transactions)
     public user: User;
