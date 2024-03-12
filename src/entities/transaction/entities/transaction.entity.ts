@@ -12,7 +12,7 @@ export class Transaction {
     @Column({ name: 'time', type: 'varchar' })
     public time: number;
 
-    @Column({ name: 'description', type: 'varchar' })
+    @Column({ name: 'description', type: 'varchar', nullable: true })
     public description: string;
 
     @Column({ name: 'mcc', type: 'varchar' })
@@ -33,7 +33,7 @@ export class Transaction {
     @Column({ name: 'commission_rate', type: 'varchar' })
     public commissionRate: number;
 
-    @Column({ name: 'cashback_amount', type: 'varchar' })
+    @Column({ name: 'cashback_amount', type: 'varchar', nullable: true })
     public cashbackAmount: number;
 
     @Column({ name: 'balance', type: 'varchar' })
@@ -42,7 +42,7 @@ export class Transaction {
     @Column({ name: 'hold', type: 'boolean' })
     public hold: boolean;
 
-    @Column({ name: 'receipt_id', type: 'boolean' })
+    @Column({ name: 'receipt_id', type: 'boolean', nullable: true })
     readonly receiptId: string;
 
     @ManyToOne(() => User, (user) => user.transactions)
