@@ -22,7 +22,6 @@ export class TransactionService {
         cardId: string,
         month?: number,
     ): Promise<Transaction[]> {
-        const updateTimeToCheck = new Date().getTime() - 60000;
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month);
 
@@ -45,8 +44,10 @@ export class TransactionService {
         var seconds = '0' + date.getSeconds();
         var formattedTime =
             hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+            
+        const updateTimeToCheck = new Date().getTime() - 60000;
 
-        console.log('[LAST REQUEST TRANS TIME]', formattedTime);
+        console.log('[LAST REQUEST TRANS TIME]', formattedTime, unix_timestamp < updateTimeToCheck);
 
         if (
             !existingTransactions.length ||
