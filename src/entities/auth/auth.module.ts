@@ -8,7 +8,6 @@ import { AuthService } from './auth.service';
     providers: [
         AuthService
     ],
-
     controllers: [AuthController],
     imports: [
         JwtModule.register({

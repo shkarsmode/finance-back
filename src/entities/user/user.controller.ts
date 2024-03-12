@@ -1,13 +1,28 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Headers, UseGuards } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+    constructor(
+        private readonly userService: UserService,
+        private readonly authService: AuthService
+    ) {}
 
-    @Get()
-    public getUsers(): string {
-        return 'hello';
+    @Get('/my')
+    public async getUserData(
+        @Headers('authorization') authorization: string,
+    ): Promise<any> {
+        const token = authorization.split(' ')[1];
+        const userId = 
+            this.authService.getUserFieldFromToken(token, 'id') as number;
+        const monobankToken = 
+            this.authService.getUserFieldFromToken(token, 'monobankToken') as string;
+
+        const user = await this.userService.getClientInfo(userId, monobankToken);
+        return user;
     }
 
     // @Get('/:id')

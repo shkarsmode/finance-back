@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { genSalt, hash } from 'bcrypt';
 import { Repository } from 'typeorm';
+import { MonobankService } from '../../services/monobank/monobank.service';
 import { RegistrationUserDto } from '../auth/dto/registration-user.dto';
 import { User } from './entities/user.entity';
 
@@ -9,7 +10,8 @@ import { User } from './entities/user.entity';
 export class UserService {
     constructor(
         @InjectRepository(User)
-        private readonly userRepository: Repository<User>
+        private readonly userRepository: Repository<User>,
+        private readonly monobankService: MonobankService
     ) {}
 
     public async getUserByEmail(email: string): Promise<any> {
@@ -44,16 +46,50 @@ export class UserService {
     }
 
     public async getUser(id: number) {
-        const salt = await genSalt(10);
-        const hashedPasword = await hash('monobanktoken', salt);
+        const user = await this.userRepository.findOne({ where: { id } });
 
-        // const user = await this.userRepository.create({
-        //     username: 'Test user',
-        //     monobankHashedToken: hashedPasword,
-        //     password: 'password'
-        // });
-        // await this.userRepository.save(user);
-        // console.log(user)
-        // return {user};
+        if (!user) {
+            throw new HttpException(
+                { message: 'User hasn`n been found' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        return user;
+    }
+
+    public async getClientInfo(id: number, monobankToken: string) {
+        if (!id || !monobankToken) {
+            throw new HttpException(
+                { message: 'Id or monobank token wasn`t found' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        const updateTimeToCheck = new Date().getTime() - 60000;
+        const user = await this.userRepository.findOne({ where: { id } });
+
+        const clientInfo = user.clientInfo;
+
+        if (!clientInfo || this.monobankService.lastRequestTime < updateTimeToCheck) {
+            console.log('[UserService] client info can be updated');
+
+            const clientInfo =
+                await this.monobankService.getClientInfo(monobankToken);
+
+            const updatedUserClientInfo = await this.userRepository.update(
+                user.id,
+                {
+                    ...user,
+                    clientInfo,
+                },
+            );
+
+            console.log('[UserService] affected', updatedUserClientInfo.affected);
+            return clientInfo;
+        }
+
+        console.log('[UserService] client info can`t be updated');
+        return user.clientInfo;
     }
 }
