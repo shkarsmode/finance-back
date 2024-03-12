@@ -1,10 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne } from "typeorm";
 import { User } from '../../user/entities/user.entity';
 
 @Entity('transactions')
 export class Transaction {
-    @PrimaryGeneratedColumn()
-    public id: number;
+    @Column({ name: 'id' })
+    public id: string;
 
     @Column({ name: 'time', type: 'varchar' })
     public time: number;

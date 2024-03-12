@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, Param, UseGuards } from '@nestjs/common';
 
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,20 +9,28 @@ import { TransactionService } from './transaction.service';
 export class TransactionController {
     constructor(
         private readonly transactionService: TransactionService,
-        private readonly authService: AuthService
+        private readonly authService: AuthService,
     ) {}
 
-    @Get()
+    @Get('/:cardId')
     @UseGuards(JwtAuthGuard)
     public async get(
+        @Param('cardId') cardId: string,
         @Headers('authorization') authorization: string,
     ): Promise<Transaction[]> {
         const token = authorization.split(' ')[1];
-        const userId = this.authService.getUserFieldFromToken(
-            token,
-            'id',
-        ) as number;
-        const transactions = await this.transactionService.get(userId);
+
+        const userId = 
+            this.authService.getUserFieldFromToken(token,'id') as number;
+        const monobankToken = 
+            this.authService.getUserFieldFromToken(token, 'monobankToken') as string;
+
+        const transactions = await this.transactionService.get(
+            userId,
+            monobankToken,
+            cardId
+        );
+        
         return transactions;
     }
 }
