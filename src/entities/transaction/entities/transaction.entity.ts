@@ -10,34 +10,34 @@ export class Transaction {
     public id: string;
 
     @Column({ name: 'time', type: 'varchar' })
-    public time: number;
+    public time: string;
 
     @Column({ name: 'description', type: 'varchar', nullable: true })
     public description: string;
 
     @Column({ name: 'mcc', type: 'varchar' })
-    public mcc: number;
+    public mcc: string;
 
     @Column({ name: 'originalMcc', type: 'varchar' })
-    public originalMcc: number;
+    public originalMcc: string;
 
     @Column({ name: 'amount', type: 'varchar' })
-    public amount: number;
+    public amount: string;
 
     @Column({ name: 'operation_amount', type: 'varchar' })
-    public operationAmount: number;
+    public operationAmount: string;
 
     @Column({ name: 'currency_code', type: 'varchar' })
-    public currencyCode: number;
+    public currencyCode: string;
 
     @Column({ name: 'commission_rate', type: 'varchar' })
-    public commissionRate: number;
+    public commissionRate: string;
 
     @Column({ name: 'cashback_amount', type: 'varchar', nullable: true })
-    public cashbackAmount: number;
+    public cashbackAmount: string;
 
     @Column({ name: 'balance', type: 'varchar' })
-    public balance: number;
+    public balance: string;
 
     @Column({ name: 'hold', type: 'boolean' })
     public hold: boolean;

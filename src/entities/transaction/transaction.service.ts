@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ITransaction } from 'src/interfaces';
-import { Between, Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { MonobankService } from '../../services/monobank/monobank.service';
 import { User } from '../user/entities/user.entity';
 import { Transaction } from './entities/transaction.entity';
@@ -31,11 +31,14 @@ export class TransactionService {
 
         const existingTransactions = await this.transactionRepository.find({
             where: {
-                time: Between(
-                    startDate.getTime().toString(),
-                    endDate.getTime().toString(),
+                time: Raw(
+                    (alias) => `${alias} BETWEEN :startDate AND :endDate`,
+                    {
+                        startDate: startDate.toISOString(),
+                        endDate: endDate.toISOString(),
+                    },
                 ),
-                user: { id: user.id},
+                user: { id: user.id },
                 cardId,
             },
         });
