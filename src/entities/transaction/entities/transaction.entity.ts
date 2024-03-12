@@ -1,9 +1,12 @@
-import { Column, Entity, ManyToOne } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { User } from '../../user/entities/user.entity';
 
 @Entity('transactions')
 export class Transaction {
-    @Column({ name: 'id' })
+    @PrimaryGeneratedColumn({ name: 'transaction_id' })
+    public transactionId: number;
+
+    @Column({ name: 'id', type: 'varchar' })
     public id: string;
 
     @Column({ name: 'time', type: 'varchar' })
