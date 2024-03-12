@@ -1,6 +1,6 @@
 export interface ITransaction {
     id: string;
-    time: string;
+    time: number;
     description: string;
     mcc: string;
     originalMcc: string;
