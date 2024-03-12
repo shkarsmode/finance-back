@@ -9,6 +9,7 @@ import { MONOBANK_API } from '../variables';
 @Injectable()
 export class MonobankService {
     public lastRequestTime: number;
+    public lastRequestTransactionsTime: number;
 
     constructor(
         private readonly httpService: HttpService,
@@ -52,11 +53,10 @@ export class MonobankService {
     public async getTransactions(
         monobankToken: string,
         cardId: string,
-        dateStart: number, 
-        dateEnd: number
+        dateStart: number,
+        dateEnd: number,
     ): Promise<ITransaction[]> {
-        const transactionsApiUrl = 
-            `${this.monobankApi}/personal/statement/${cardId}/${dateStart}/${dateEnd}`;
+        const transactionsApiUrl = `${this.monobankApi}/personal/statement/${cardId}/${dateStart}/${dateEnd}`;
 
         const { data } = await firstValueFrom(
             this.httpService
@@ -64,7 +64,7 @@ export class MonobankService {
                     headers: { 'X-Token': monobankToken },
                 })
                 .pipe(
-                    tap(() => (this.lastRequestTime = new Date().getTime())),
+                    tap(() => (this.lastRequestTransactionsTime = new Date().getTime())),
                     catchError((error: AxiosError) => {
                         throw 'Too much requests to get currency!';
                     }),

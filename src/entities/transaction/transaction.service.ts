@@ -30,7 +30,7 @@ export class TransactionService {
         });
 
         if (
-            this.monobankService.lastRequestTime < updateTimeToCheck
+            this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
         ) {
             console.log(
                 '[TransactionService] transactions info can be updated',
