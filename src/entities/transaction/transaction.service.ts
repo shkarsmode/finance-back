@@ -9,10 +9,11 @@ import { Transaction } from './entities/transaction.entity';
 @Injectable()
 export class TransactionService {
     constructor(
-        @InjectRepository(Transaction)
+        @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        private readonly monobankService: MonobankService,
+        @InjectRepository(Transaction)
         private readonly transactionRepository: Repository<Transaction>,
+        private readonly monobankService: MonobankService,
     ) {}
 
     public async get(
