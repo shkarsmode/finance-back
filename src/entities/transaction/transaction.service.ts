@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ITransaction } from 'src/interfaces';
-import { Between, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { MonobankService } from '../../services/monobank/monobank.service';
 import { User } from '../user/entities/user.entity';
 import { Transaction } from './entities/transaction.entity';
@@ -31,7 +31,7 @@ export class TransactionService {
 
         const existingTransactions = await this.transactionRepository.find({
             where: {
-                time: Between(+startDate.getTime(), +endDate.getTime()),
+                // time: Between(+startDate.getTime(), +endDate.getTime()),
                 user,
                 cardId,
             },
@@ -47,7 +47,12 @@ export class TransactionService {
 
         const updateTimeToCheck = new Date().getTime() - 60000;
 
-        console.log('[LAST REQUEST TRANS TIME]', formattedTime, 'last request < update time to check', unix_timestamp < updateTimeToCheck);
+        console.log(
+            '[LAST REQUEST TRANS TIME]',
+            formattedTime,
+            'last request < update time to check',
+            unix_timestamp < updateTimeToCheck,
+        );
 
         if (
             !existingTransactions.length ||
@@ -64,7 +69,7 @@ export class TransactionService {
                     startDate.getTime(),
                     endDate.getTime(),
                 )
-            ).map((transaction) => ({ ...transaction, cardId, time: +transaction.time }));
+            ).map((transaction) => ({ ...transaction, cardId }));
 
             const updatedTransactions: Transaction[] = [];
 

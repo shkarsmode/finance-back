@@ -10,7 +10,7 @@ export class Transaction {
     public id: string;
 
     @Column({ name: 'time', type: 'varchar' })
-    public time: number;
+    public time: string;
 
     @Column({ name: 'description', type: 'varchar', nullable: true })
     public description: string;
