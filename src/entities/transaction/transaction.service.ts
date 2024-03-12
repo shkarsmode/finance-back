@@ -38,6 +38,7 @@ export class TransactionService {
                 user,
                 cardId,
             },
+            relations: ['user'],
         });
 
         const unix_timestamp = this.monobankService.lastRequestTransactionsTime;
