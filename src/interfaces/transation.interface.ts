@@ -1,15 +1,15 @@
 export interface ITransaction {
-    readonly id: string;
-    readonly time: number;
-    readonly description: string;
-    readonly mcc: number;
-    readonly originalMcc: number;
-    readonly amount: number;
-    readonly operationAmount: number;
-    readonly currencyCode: number;
-    readonly commissionRate: number;
-    readonly cashbackAmount: number;
-    readonly balance: number;
-    readonly hold: boolean;
-    readonly receiptId: string;
+    id: string;
+    time: string;
+    description: string;
+    mcc: string;
+    originalMcc: string;
+    amount: string;
+    operationAmount: string;
+    currencyCode: string;
+    commissionRate: string;
+    cashbackAmount: string;
+    balance: string;
+    hold: boolean;
+    receiptId: string;
 }

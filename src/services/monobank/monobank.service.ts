@@ -78,7 +78,7 @@ export class MonobankService {
                         )
                     ),
                     catchError((error: AxiosError) => {
-                        throw 'Too much requests to get currency!';
+                        throw 'Too much requests to get transactions!';
                     }),
                 ),
         );

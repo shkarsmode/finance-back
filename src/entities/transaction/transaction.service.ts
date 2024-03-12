@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ITransaction } from 'src/interfaces';
 import { Between, Repository } from 'typeorm';
 import { MonobankService } from '../../services/monobank/monobank.service';
+import { User } from '../user/entities/user.entity';
 import { Transaction } from './entities/transaction.entity';
 
 @Injectable()
 export class TransactionService {
     constructor(
         @InjectRepository(Transaction)
-        private readonly transactionRepository: Repository<Transaction>,
+        private readonly userRepository: Repository<User>,
         private readonly monobankService: MonobankService,
+        private readonly transactionRepository: Repository<Transaction>,
     ) {}
 
     public async get(
@@ -22,11 +25,18 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month);
 
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+        });
+
         const existingTransactions = await this.transactionRepository.find({
             where: {
-                time: Between(startDate.getTime(), endDate.getTime()),
-                user: { id: userId },
-                cardId
+                time: Between(
+                    startDate.getTime().toString(),
+                    endDate.getTime().toString(),
+                ),
+                user: { id: user.id},
+                cardId,
             },
         });
 
@@ -38,7 +48,7 @@ export class TransactionService {
                 '[TransactionService] transactions info can be updated',
             );
 
-            const transactionsFromApi = (
+            const transactionsFromApi: ITransaction[] = (
                 await this.monobankService.getTransactions(
                     monobankToken,
                     cardId,
@@ -61,8 +71,8 @@ export class TransactionService {
                 } else {
                     const newTransaction = this.transactionRepository.create({
                         ...transactionFromApi,
-                        user: { id: userId },
-                        cardId
+                        user,
+                        cardId,
                     });
                     await this.transactionRepository.save(newTransaction);
                     updatedTransactions.push(newTransaction);
