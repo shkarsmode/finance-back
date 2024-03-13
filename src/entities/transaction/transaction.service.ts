@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ITransaction } from 'src/interfaces';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { MonobankService } from '../../services/monobank/monobank.service';
 import { User } from '../user/entities/user.entity';
 import { Transaction } from './entities/transaction.entity';
@@ -31,35 +31,19 @@ export class TransactionService {
 
         const existingTransactions = await this.transactionRepository.find({
             where: {
-                // time: Between(
-                //     startDate.getTime().toString(),
-                //     endDate.getTime().toString(),
-                // ),
+                time: Between(
+                    startDate.getTime().toString(),
+                    endDate.getTime().toString(),
+                ),
                 user: { id: user.id },
                 cardId,
             },
             relations: ['user'],
         });
 
-        const unix_timestamp = this.monobankService.lastRequestTransactionsTime;
-        var date = new Date(unix_timestamp * 1000);
-        var hours = date.getHours();
-        var minutes = '0' + date.getMinutes();
-        var seconds = '0' + date.getSeconds();
-        var formattedTime =
-            hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-
         const updateTimeToCheck = new Date().getTime() - 60000;
 
-        console.log(
-            '[LAST REQUEST TRANS TIME]',
-            formattedTime,
-            'last request < update time to check',
-            unix_timestamp < updateTimeToCheck,
-        );
-
         if (
-            !existingTransactions.length ||
             this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
         ) {
             console.log(
@@ -84,7 +68,7 @@ export class TransactionService {
 
                 if (existingTransaction) {
                     Object.assign(existingTransaction, transactionFromApi);
-                    await this.transactionRepository.save(existingTransaction);
+                    this.transactionRepository.save(existingTransaction);
                     updatedTransactions.push(existingTransaction);
                 } else {
                     const newTransaction = this.transactionRepository.create({
@@ -92,7 +76,7 @@ export class TransactionService {
                         user,
                         cardId,
                     });
-                    await this.transactionRepository.save(newTransaction);
+                    this.transactionRepository.save(newTransaction);
                     updatedTransactions.push(newTransaction);
                 }
             }
@@ -101,7 +85,7 @@ export class TransactionService {
         }
 
         console.log('[TransactionService] transactions info can`t be updated');
-        return existingTransactions;
+        return existingTransactions ?? [];
     }
 
     private getStartAndEndDateBasedOnMonthNumber(month?: number): {
