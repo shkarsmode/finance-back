@@ -66,11 +66,7 @@ export class TransactionService {
                     (t) => t.id === transactionFromApi.id,
                 );
 
-                if (existingTransaction) {
-                    Object.assign(existingTransaction, transactionFromApi);
-                    this.transactionRepository.save(existingTransaction);
-                    updatedTransactions.push(existingTransaction);
-                } else {
+                if (!existingTransaction) {
                     const newTransaction = this.transactionRepository.create({
                         ...transactionFromApi,
                         user: { id: userId },
