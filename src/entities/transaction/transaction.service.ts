@@ -25,9 +25,9 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month);
 
-        const user = await this.userRepository.findOne({
-            where: { id: userId },
-        });
+        // const user = await this.userRepository.findOne({
+        //     where: { id: userId },
+        // });
 
         const existingTransactions = await this.transactionRepository.find({
             where: {
@@ -35,7 +35,7 @@ export class TransactionService {
                     startDate.getTime().toString(),
                     endDate.getTime().toString(),
                 ),
-                user: { id: user.id },
+                user: { id: userId },
                 cardId,
             },
             relations: ['user'],
@@ -73,7 +73,7 @@ export class TransactionService {
                 } else {
                     const newTransaction = this.transactionRepository.create({
                         ...transactionFromApi,
-                        user,
+                        user: { id: userId },
                         cardId,
                     });
                     this.transactionRepository.save(newTransaction);
