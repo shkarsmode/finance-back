@@ -38,6 +38,7 @@ export class TransactionService {
         });
 
         const updateTimeToCheck = new Date().getTime() - 60000;
+        console.log('existingTransactions', existingTransactions.length);
 
         if (
             this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
@@ -82,6 +83,12 @@ export class TransactionService {
                     });
                     this.transactionRepository.save(newTransaction);
                     updatedTransactions.push(newTransaction);
+                } else {
+                    updatedTransactions.push({
+                        ...transactionFromApi,
+                        user: { id: userId },
+                        cardId,
+                    } as Transaction);
                 }
             }
 
