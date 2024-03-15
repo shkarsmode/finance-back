@@ -57,7 +57,7 @@ export class TransactionService {
                 .map((transaction) => ({ ...transaction, cardId }))
                 .sort((transactionA, transactionB) => +transactionB.time - +transactionA.time)
 
-            if (transactionsFromApi[0].id === existingTransactions[0].id) {
+            if (transactionsFromApi[0]?.id === existingTransactions[0]?.id) {
                 console.log('[Transactions Service] - no updated transactions found');
                 return existingTransactions;
             }
