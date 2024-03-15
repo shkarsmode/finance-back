@@ -56,9 +56,12 @@ export class TransactionService {
                 )
             )
                 .map((transaction) => ({ ...transaction, cardId }))
-                .sort((transactionA, transactionB) => +transactionB.time - +transactionA.time)
 
             const updatedTransactions: Transaction[] = [];
+
+            if (transactionsFromApi?.length === existingTransactions?.length) {
+                return existingTransactions;
+            }
 
             for (const transactionFromApi of transactionsFromApi) {
                 const existingTransaction = existingTransactions.find(
