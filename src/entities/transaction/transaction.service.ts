@@ -69,12 +69,12 @@ export class TransactionService {
                 );
 
                 if (!existingTransaction) {
-                    const newTransaction = this.transactionRepository.create({
+                    const newTransaction = await this.transactionRepository.create({
                         ...transactionFromApi,
                         user: { id: userId },
                         cardId,
                     });
-                    this.transactionRepository.save(newTransaction);
+                    await this.transactionRepository.save(newTransaction);
                     updatedTransactions.push(newTransaction);
                 } else {
                     updatedTransactions.push({
