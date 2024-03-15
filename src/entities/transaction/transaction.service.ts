@@ -57,10 +57,16 @@ export class TransactionService {
                     startDate.getTime(),
                     endDate.getTime(),
                 )
-            ).map((transaction) => ({ ...transaction, cardId }));
+            )
+                .map((transaction) => ({ ...transaction, cardId }))
+                .sort((transactionA, transactionB) => +transactionB.time - +transactionA.time)
+
+            if (transactionsFromApi[0].id === existingTransactions[0].id) {
+                return existingTransactions;
+            }
 
             const updatedTransactions: Transaction[] = [];
-
+            
             for (const transactionFromApi of transactionsFromApi) {
                 const existingTransaction = existingTransactions.find(
                     (t) => t.id === transactionFromApi.id,

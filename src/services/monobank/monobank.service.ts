@@ -71,12 +71,6 @@ export class MonobankService {
                 })
                 .pipe(
                     tap(() => (this.lastRequestTransactionsTime = new Date().getTime())),
-                    tap(() => 
-                        console.log(
-                            '[Last request transactions time]', 
-                            this.lastRequestTransactionsTime
-                        )
-                    ),
                     catchError((error: AxiosError) => {
                         throw 'Too much requests to get transactions!';
                     }),
