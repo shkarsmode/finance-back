@@ -25,10 +25,6 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month);
 
-        // const user = await this.userRepository.findOne({
-        //     where: { id: userId },
-        // });
-
         const existingTransactions = await this.transactionRepository.find({
             where: {
                 time: Between(
@@ -62,11 +58,12 @@ export class TransactionService {
                 .sort((transactionA, transactionB) => +transactionB.time - +transactionA.time)
 
             if (transactionsFromApi[0].id === existingTransactions[0].id) {
+                console.log('[Transactions Service] - no updated transactions found');
                 return existingTransactions;
             }
 
             const updatedTransactions: Transaction[] = [];
-            
+
             for (const transactionFromApi of transactionsFromApi) {
                 const existingTransaction = existingTransactions.find(
                     (t) => t.id === transactionFromApi.id,
