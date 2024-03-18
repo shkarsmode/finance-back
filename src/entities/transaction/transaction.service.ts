@@ -34,7 +34,7 @@ export class TransactionService {
                 user: { id: userId },
                 cardId,
             },
-            relations: ['user'],
+            relations: ['user']
         });
 
         const updateTimeToCheck = new Date().getTime() - 60000;
@@ -85,11 +85,11 @@ export class TransactionService {
                 }
             }
 
-            return updatedTransactions;
+            return updatedTransactions.sort((a, b) => +b.time - +a.time);
         }
 
         console.log('[TransactionService] transactions info can`t be updated');
-        return existingTransactions ?? [];
+        return existingTransactions?.sort((a, b) => +b.time - +a.time) ?? [];
     }
 
     private getStartAndEndDateBasedOnMonthNumber(month?: number): {
