@@ -29,8 +29,8 @@ export class TransactionService {
         const existingTransactions = await this.transactionRepository.find({
             where: {
                 time: Between(
-                    startDate.setHours(startDate.getHours() - 2).toString(),
-                    endDate.setHours(endDate.getHours() - 2).toString(),
+                    startDate.setHours(startDate.getHours() - 3).toString(),
+                    endDate.setHours(endDate.getHours() - 3).toString(),
                 ),
                 user: { id: userId },
                 cardId,
