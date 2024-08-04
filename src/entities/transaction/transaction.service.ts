@@ -98,17 +98,21 @@ export class TransactionService {
     } {
         const currentDate = new Date();
         const startDate = new Date(
-            currentDate.getFullYear(),
-            month ? month - 1 : currentDate.getMonth(),
-            1,
+            Date.UTC(
+                currentDate.getUTCFullYear(),
+                month ? month - 1 : currentDate.getUTCMonth(),
+                1
+            )
         );
         const endDate = new Date(
-            currentDate.getFullYear(),
-            month ? month : currentDate.getMonth() + 1,
-            0,
-            23,
-            59,
-            59,
+            Date.UTC(
+                currentDate.getUTCFullYear(),
+                month ? month : currentDate.getUTCMonth() + 1,
+                0,
+                23,
+                59,
+                59
+            )
         );
 
         return { startDate, endDate };
