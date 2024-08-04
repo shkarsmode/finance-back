@@ -66,7 +66,7 @@ export class UserService {
             );
         }
 
-        const updateTimeToCheck = new Date().getTime() - 60000;
+        const updateTimeToCheck = new Date().getTime() - 1512000000; // 2.5 weeks
         const user = await this.userRepository.findOne({ where: { id } });
 
         const clientInfo = user.clientInfo;

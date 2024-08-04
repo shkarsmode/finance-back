@@ -14,7 +14,7 @@ export class CurrencyService {
     ) {}
 
     public async get(): Promise<ICurrency[]> {
-        const updateTimeToCheck = new Date().getTime() - 60000;
+        const updateTimeToCheck = new Date().getTime() - 86400000; // 1 day
         const currencies = await this.currencyRepository.find({ 
             order: { updateAt: 'DESC' },
             take: 1
