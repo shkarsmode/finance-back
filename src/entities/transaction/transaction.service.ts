@@ -25,11 +25,12 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month);
 
+
         const existingTransactions = await this.transactionRepository.find({
             where: {
                 time: Between(
-                    startDate.getTime().toString(),
-                    endDate.getTime().toString(),
+                    startDate.setHours(startDate.getHours() - 2).toString(),
+                    endDate.setHours(endDate.getHours() - 2).toString(),
                 ),
                 user: { id: userId },
                 cardId,
@@ -97,13 +98,11 @@ export class TransactionService {
         endDate: Date;
     } {
         const currentDate = new Date();
-
         const startDate = new Date(
             currentDate.getFullYear(),
             month ? month - 1 : currentDate.getMonth(),
             1,
         );
-
         const endDate = new Date(
             currentDate.getFullYear(),
             month ? month : currentDate.getMonth() + 1,
@@ -113,11 +112,6 @@ export class TransactionService {
             59,
         );
 
-        startDate.setHours(startDate.getHours() - 2);
-
-        endDate.setHours(endDate.getHours() + 2);
-
         return { startDate, endDate };
     }
-
 }
