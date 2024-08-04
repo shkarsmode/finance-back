@@ -97,24 +97,27 @@ export class TransactionService {
         endDate: Date;
     } {
         const currentDate = new Date();
+
         const startDate = new Date(
-            Date.UTC(
-                currentDate.getUTCFullYear(),
-                month ? month - 1 : currentDate.getUTCMonth(),
-                1
-            )
+            currentDate.getFullYear(),
+            month ? month - 1 : currentDate.getMonth(),
+            1,
         );
+
         const endDate = new Date(
-            Date.UTC(
-                currentDate.getUTCFullYear(),
-                month ? month : currentDate.getUTCMonth() + 1,
-                0,
-                23,
-                59,
-                59
-            )
+            currentDate.getFullYear(),
+            month ? month : currentDate.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
         );
+
+        startDate.setHours(startDate.getHours() - 2);
+
+        endDate.setHours(endDate.getHours() + 2);
 
         return { startDate, endDate };
     }
+
 }
