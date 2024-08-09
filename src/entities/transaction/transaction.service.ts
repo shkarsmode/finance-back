@@ -38,7 +38,7 @@ export class TransactionService {
             relations: ['user']
         });
 
-        const updateTimeToCheck = new Date().getTime() - 3600000; // 1 hour
+        const updateTimeToCheck = new Date().getTime() - 120000; // 2 minutes
         console.log('existingTransactions', existingTransactions.length);
 
         if (
