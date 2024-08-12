@@ -16,6 +16,9 @@ export class User {
     @Column({ name: 'monobankToken', type: 'varchar' })
     public monobankToken: string;
 
+    @Column({ name: 'categoryGroups', type: 'json', nullable: true })
+    public categoryGroups: any;
+
     @Column({ name: 'client_info', type: 'json', nullable: true })
     public clientInfo: IAccountInfo;
 

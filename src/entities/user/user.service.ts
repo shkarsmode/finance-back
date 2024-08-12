@@ -11,13 +11,30 @@ export class UserService {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        private readonly monobankService: MonobankService
+        private readonly monobankService: MonobankService,
     ) {}
 
     public async getUserByEmail(email: string): Promise<any> {
         const user = await this.userRepository.findOne({ where: { email } });
 
         return user;
+    }
+
+    public async updateCategories(
+        id: number,
+        categoryGroups: any,
+    ): Promise<any> {
+        const user = await this.userRepository.findOne({ where: { id } });
+        const updatedUser = {
+            ...user,
+            categoryGroups,
+        };
+        const updateResult = await this.userRepository.update(
+            { id },
+            updatedUser,
+        );
+
+        return updateResult.affected;
     }
 
     public async createUser(user: RegistrationUserDto): Promise<User> {
@@ -58,7 +75,7 @@ export class UserService {
         return user;
     }
 
-    public async getClientInfo(id: number, monobankToken: string) {
+    public async getClientInfo(id: number, monobankToken: string): Promise<any> {
         if (!id || !monobankToken) {
             throw new HttpException(
                 { message: 'Id or monobank token wasn`t found' },
@@ -69,9 +86,15 @@ export class UserService {
         const updateTimeToCheck = new Date().getTime() - 1512000000; // 2.5 weeks
         const user = await this.userRepository.findOne({ where: { id } });
 
-        const clientInfo = user.clientInfo;
+        const clientInfo = {
+            ...user.clientInfo,
+            categoryGroups: user.categoryGroups,
+        };
 
-        if (!clientInfo || this.monobankService.lastRequestTime < updateTimeToCheck) {
+        if (
+            !clientInfo ||
+            this.monobankService.lastRequestTime < updateTimeToCheck
+        ) {
             console.log('[UserService] client info can be updated');
 
             const clientInfo =
@@ -82,14 +105,21 @@ export class UserService {
                 {
                     ...user,
                     clientInfo,
+                    categoryGroups: user.categoryGroups,
                 },
             );
 
-            console.log('[UserService] affected', updatedUserClientInfo.affected);
+            console.log(
+                '[UserService] affected',
+                updatedUserClientInfo.affected,
+            );
             return clientInfo;
         }
 
         console.log('[UserService] client info can`t be updated');
-        return user.clientInfo;
+        return {
+            ...user.clientInfo,
+            categoryGroups: user.categoryGroups,
+        };
     }
 }

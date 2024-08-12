@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
@@ -8,7 +8,7 @@ import { UserService } from './user.service';
 export class UserController {
     constructor(
         private readonly userService: UserService,
-        private readonly authService: AuthService
+        private readonly authService: AuthService,
     ) {}
 
     @Get('/my')
@@ -23,6 +23,21 @@ export class UserController {
 
         const user = await this.userService.getClientInfo(userId, monobankToken);
         return user;
+    }
+
+    @Post('/update-categories')
+    public async updateCategories(
+        @Headers('authorization') authorization: string,
+        @Body() categories: any,
+    ): Promise<any> {
+        const token = authorization.split(' ')[1];
+        const userId = this.authService.getUserFieldFromToken(
+            token,
+            'id',
+        ) as number;
+        
+        const affected = await this.userService.updateCategories(userId, categories);
+        return { affected };
     }
 
     // @Get('/:id')
