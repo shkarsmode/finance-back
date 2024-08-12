@@ -113,7 +113,10 @@ export class UserService {
                 '[UserService] affected',
                 updatedUserClientInfo.affected,
             );
-            return clientInfo;
+            return {
+                ...user.clientInfo,
+                categoryGroups: user.categoryGroups,
+            };
         }
 
         console.log('[UserService] client info can`t be updated');
