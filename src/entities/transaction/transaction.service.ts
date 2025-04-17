@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ITransaction } from 'src/interfaces';
 import { Between, Repository } from 'typeorm';
 import { MonobankService } from '../../services/monobank/monobank.service';
 import { User } from '../user/entities/user.entity';
@@ -26,22 +25,31 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month, year);
 
-
-        const existingTransactions = await this.transactionRepository.find({
-            where: {
-                time: Between(
-                    startDate.setHours(startDate.getHours() - 3).toString(),
-                    endDate.setHours(endDate.getHours() - 3).toString(),
-                ),
-                user: { id: userId },
+        // Запрос существующих транзакций параллельно с запросом через API
+        const [existingTransactions, transactionsFromApi] = await Promise.all([
+            this.transactionRepository.find({
+                where: {
+                    time: Between(
+                        startDate.setHours(startDate.getHours() - 3).toString(),
+                        endDate.setHours(endDate.getHours() - 3).toString(),
+                    ),
+                    user: { id: userId },
+                    cardId,
+                },
+                relations: ['user'],
+            }),
+            this.monobankService.getTransactions(
+                monobankToken,
                 cardId,
-            },
-            relations: ['user']
-        });
+                startDate.getTime(),
+                endDate.getTime(),
+            ),
+        ]);
 
-        const updateTimeToCheck = new Date().getTime() - 120000; // 2 minutes
+        const updateTimeToCheck = new Date().getTime() - 120000; // 2 минуты
         console.log('existingTransactions', existingTransactions.length);
 
+        // Если прошло достаточно времени, обновляем данные
         if (
             this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
         ) {
@@ -49,29 +57,22 @@ export class TransactionService {
                 '[TransactionService] transactions info can be updated',
             );
 
-            const transactionsFromApi: ITransaction[] = (
-                await this.monobankService.getTransactions(
-                    monobankToken,
-                    cardId,
-                    startDate.getTime(),
-                    endDate.getTime(),
-                )
-            )
-                .map((transaction) => ({ ...transaction, cardId }))
-
             const updatedTransactions: Transaction[] = [];
 
+            // Если транзакции совпадают по количеству, возвращаем старые
             if (transactionsFromApi?.length === existingTransactions?.length) {
                 return existingTransactions;
             }
 
+            // Обработка новых транзакций
             for (const transactionFromApi of transactionsFromApi) {
                 const existingTransaction = existingTransactions.find(
                     (t) => t.id === transactionFromApi.id,
                 );
 
                 if (!existingTransaction) {
-                    const newTransaction = await this.transactionRepository.create({
+                    // Создаём новую транзакцию
+                    const newTransaction = this.transactionRepository.create({
                         ...transactionFromApi,
                         user: { id: userId },
                         cardId,
@@ -79,6 +80,7 @@ export class TransactionService {
                     await this.transactionRepository.save(newTransaction);
                     updatedTransactions.push(newTransaction);
                 } else {
+                    // Если транзакция существует, добавляем её в обновлённый список
                     updatedTransactions.push({
                         ...transactionFromApi,
                         user: { id: userId },
@@ -94,7 +96,10 @@ export class TransactionService {
         return existingTransactions?.sort((a, b) => +b.time - +a.time) ?? [];
     }
 
-    private getStartAndEndDateBasedOnMonthNumber(month?: number, year?: number): {
+    private getStartAndEndDateBasedOnMonthNumber(
+        month?: number,
+        year?: number,
+    ): {
         startDate: Date;
         endDate: Date;
     } {
