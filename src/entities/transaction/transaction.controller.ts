@@ -12,12 +12,12 @@ export class TransactionController {
         private readonly authService: AuthService,
     ) {}
 
-    @Get('/:cardId/:month/:year')
+    @Get('/:cardId/:month/:year?')
     @UseGuards(JwtAuthGuard)
     public async get(
         @Param('cardId') cardId: string,
         @Param('month', ParseIntPipe) month: number,
-        @Param('year', ParseIntPipe) year: number,
+        @Param('year', ParseIntPipe) year: number | undefined,
         @Headers('authorization') authorization: string,
     ): Promise<Transaction[]> {
         const token = authorization.split(' ')[1];
