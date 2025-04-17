@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { catchError, firstValueFrom, tap } from 'rxjs';
+import { catchError, firstValueFrom, of, tap } from 'rxjs';
 import { IAccountInfo, ITransaction } from 'src/interfaces';
 import { ICurrency } from '../../interfaces/currency.interface';
 import { MONOBANK_API } from '../variables';
@@ -19,41 +19,43 @@ export class MonobankService {
     public async getActualCurrency(): Promise<ICurrency[]> {
         const currencyApiUrl = `${this.monobankApi}/bank/currency`;
 
-        const { data } = await firstValueFrom(
+        const response = await firstValueFrom(
             this.httpService.get<ICurrency[]>(currencyApiUrl).pipe(
-                tap(() => (this.lastRequestTime = new Date().getTime())),
+                tap(() => (this.lastRequestTime = Date.now())),
                 catchError((error: AxiosError) => {
-                    throw 'Too much requests to get currency!';
+                    console.warn(
+                        '[MonobankService] Currency fetch failed:',
+                        error.message,
+                    );
+                    return of({ data: [] as ICurrency[] }); // возвращаем объект с `data`
                 }),
             ),
         );
 
-        return data;
+        return response.data;
     }
 
     public async getClientInfo(monobankToken: string): Promise<IAccountInfo> {
-        const currencyApiUrl = `${this.monobankApi}/personal/client-info`;
+        const url = `${this.monobankApi}/personal/client-info`;
 
-        const { data } = await firstValueFrom(
+        const response = await firstValueFrom(
             this.httpService
-                .get<IAccountInfo>(currencyApiUrl, {
+                .get<IAccountInfo>(url, {
                     headers: { 'X-Token': monobankToken },
                 })
                 .pipe(
-                    tap(() => (this.lastRequestTime = new Date().getTime())),
-                    tap(() =>
-                        console.log(
-                            '[Last request time]',
-                            this.lastRequestTime,
-                        ),
-                    ),
+                    tap(() => (this.lastRequestTime = Date.now())),
                     catchError((error: AxiosError) => {
-                        throw 'Too much requests to get currency!';
+                        console.warn(
+                            '[MonobankService] Client info fetch failed:',
+                            error.message,
+                        );
+                        return of({ data: null as any }); // либо null, либо кидаем ошибку выше
                     }),
                 ),
         );
 
-        return data;
+        return response.data;
     }
 
     public async getTransactions(
@@ -62,19 +64,25 @@ export class MonobankService {
         dateStart: number,
         dateEnd: number,
     ): Promise<ITransaction[]> {
-        const transactionsApiUrl = `${this.monobankApi}/personal/statement/${cardId}/${dateStart}/${dateEnd}`;
+        const url = `${this.monobankApi}/personal/statement/${cardId}/${dateStart}/${dateEnd}`;
 
-        const { data } = await firstValueFrom(
+        const response = await firstValueFrom(
             this.httpService
-                .get<ITransaction[]>(transactionsApiUrl, {
+                .get<ITransaction[]>(url, {
                     headers: { 'X-Token': monobankToken },
                 })
                 .pipe(
-                    tap(() => (this.lastRequestTransactionsTime = new Date().getTime())),
-                    catchError((error: AxiosError) => []),
+                    tap(() => (this.lastRequestTransactionsTime = Date.now())),
+                    catchError((error: AxiosError) => {
+                        console.warn(
+                            '[MonobankService] Transactions fetch failed:',
+                            error.message,
+                        );
+                        return of({ data: [] as ITransaction[] });
+                    }),
                 ),
         );
 
-        return data;
+        return response.data;
     }
 }
