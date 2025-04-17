@@ -73,7 +73,7 @@ export class MonobankService {
                     timeout: 10000,
                 })
                 .pipe(
-                    timeout(9000),
+                    timeout(5000),
                     tap(() => (this.lastRequestTransactionsTime = Date.now())),
                     catchError((error: AxiosError) => {
                         console.warn(
