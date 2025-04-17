@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, Param, UseGuards } from '@nestjs/common';
 
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -16,7 +16,7 @@ export class TransactionController {
     @UseGuards(JwtAuthGuard)
     public async get(
         @Param('cardId') cardId: string,
-        @Param('month', ParseIntPipe) month: number,
+        @Param('month') month: string,
         @Param('year') year: string,
         @Headers('authorization') authorization: string,
     ): Promise<Transaction[]> {
@@ -35,7 +35,7 @@ export class TransactionController {
             userId,
             monobankToken,
             cardId,
-            month,
+            month ? +month : undefined,
             year ? +year : undefined,
         );
 
