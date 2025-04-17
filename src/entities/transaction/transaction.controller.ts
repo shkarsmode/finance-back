@@ -17,7 +17,7 @@ export class TransactionController {
     public async get(
         @Param('cardId') cardId: string,
         @Param('month', ParseIntPipe) month: number,
-        @Param('year', ParseIntPipe) year: string,
+        @Param('year') year: string,
         @Headers('authorization') authorization: string,
     ): Promise<Transaction[]> {
         const token = authorization.split(' ')[1];
