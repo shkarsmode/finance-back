@@ -70,6 +70,7 @@ export class MonobankService {
             this.httpService
                 .get<ITransaction[]>(url, {
                     headers: { 'X-Token': monobankToken },
+                    timeout: 5000,
                 })
                 .pipe(
                     tap(() => (this.lastRequestTransactionsTime = Date.now())),
