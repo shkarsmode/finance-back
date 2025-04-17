@@ -21,9 +21,10 @@ export class TransactionService {
         monobankToken: string,
         cardId: string,
         month?: number,
+        year?: number,
     ): Promise<Transaction[]> {
         const { startDate, endDate } =
-            this.getStartAndEndDateBasedOnMonthNumber(month);
+            this.getStartAndEndDateBasedOnMonthNumber(month, year);
 
 
         const existingTransactions = await this.transactionRepository.find({
@@ -93,18 +94,18 @@ export class TransactionService {
         return existingTransactions?.sort((a, b) => +b.time - +a.time) ?? [];
     }
 
-    private getStartAndEndDateBasedOnMonthNumber(month?: number): {
+    private getStartAndEndDateBasedOnMonthNumber(month?: number, year?: number): {
         startDate: Date;
         endDate: Date;
     } {
         const currentDate = new Date();
         const startDate = new Date(
-            currentDate.getFullYear(),
+            year ?? currentDate.getFullYear(),
             month ? month - 1 : currentDate.getMonth(),
             1,
         );
         const endDate = new Date(
-            currentDate.getFullYear(),
+            year ?? currentDate.getFullYear(),
             month ? month : currentDate.getMonth() + 1,
             0,
             23,
