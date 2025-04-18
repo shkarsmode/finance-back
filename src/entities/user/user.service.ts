@@ -12,7 +12,15 @@ export class UserService {
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         private readonly monobankService: MonobankService,
-    ) {}
+    ) {
+        // (async () => {
+        //     const salt = await genSalt(10);
+        //     const hashedPasword = await hash('password', salt);
+        //     console.log('end');
+        //     console.log(hashedPasword);
+        //     console.log('end')
+        // })();
+    }
 
     public async getUserByEmail(email: string): Promise<any> {
         const user = await this.userRepository.findOne({ where: { email } });
