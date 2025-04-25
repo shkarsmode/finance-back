@@ -50,9 +50,9 @@ export class TransactionService {
         console.log('existingTransactions', existingTransactions.length);
 
         // Если прошло достаточно времени, обновляем данные
-        if (
-            this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
-        ) {
+        // if (
+        //     this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
+        // ) {
             console.log(
                 '[TransactionService] transactions info can be updated',
             );
@@ -90,9 +90,9 @@ export class TransactionService {
             }
 
             return updatedTransactions.sort((a, b) => +b.time - +a.time);
-        }
+        // }
 
-        console.log('[TransactionService] transactions info can`t be updated');
+        // console.log('[TransactionService] transactions info can`t be updated');
         return existingTransactions?.sort((a, b) => +b.time - +a.time) ?? [];
     }
 

@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { catchError, firstValueFrom, of, tap, timeout } from 'rxjs';
+import { catchError, firstValueFrom, of, tap } from 'rxjs';
 import { IAccountInfo, ITransaction } from 'src/interfaces';
 import { ICurrency } from '../../interfaces/currency.interface';
 import { MONOBANK_API } from '../variables';
@@ -73,7 +73,7 @@ export class MonobankService {
                     timeout: 10000,
                 })
                 .pipe(
-                    timeout(5000),
+                    // timeout(5000),
                     tap(() => (this.lastRequestTransactionsTime = Date.now())),
                     catchError((error: AxiosError) => {
                         console.warn(
