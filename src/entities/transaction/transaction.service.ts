@@ -53,46 +53,53 @@ export class TransactionService {
         // if (
         //     this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
         // ) {
+
+        if (transactionsFromApi.length) {
             console.log(
                 '[TransactionService] transactions info can be updated',
             );
+        } else {
+            console.log(
+                '[TransactionService] transactions info can`t be updated',
+            );
+        }
 
-            const updatedTransactions: Transaction[] = [];
+        const updatedTransactions: Transaction[] = [];
 
-            // Если транзакции совпадают по количеству, возвращаем старые
-            if (transactionsFromApi?.length === existingTransactions?.length) {
-                return existingTransactions;
+        // Если транзакции совпадают по количеству, возвращаем старые
+        if (transactionsFromApi?.length === existingTransactions?.length) {
+            return existingTransactions;
+        }
+        
+
+        // Обработка новых транзакций
+        for (const transactionFromApi of transactionsFromApi) {
+            const existingTransaction = existingTransactions.find(
+                (t) => t.id === transactionFromApi.id,
+            );
+
+            if (!existingTransaction) {
+                // Создаём новую транзакцию
+                const newTransaction = this.transactionRepository.create({
+                    ...transactionFromApi,
+                    user: { id: userId },
+                    cardId,
+                });
+                await this.transactionRepository.save(newTransaction);
+                updatedTransactions.push(newTransaction);
+            } else {
+                // Если транзакция существует, добавляем её в обновлённый список
+                updatedTransactions.push({
+                    ...transactionFromApi,
+                    user: { id: userId },
+                    cardId,
+                } as Transaction);
             }
+        }
 
-            // Обработка новых транзакций
-            for (const transactionFromApi of transactionsFromApi) {
-                const existingTransaction = existingTransactions.find(
-                    (t) => t.id === transactionFromApi.id,
-                );
+        return updatedTransactions.sort((a, b) => +b.time - +a.time);
 
-                if (!existingTransaction) {
-                    // Создаём новую транзакцию
-                    const newTransaction = this.transactionRepository.create({
-                        ...transactionFromApi,
-                        user: { id: userId },
-                        cardId,
-                    });
-                    await this.transactionRepository.save(newTransaction);
-                    updatedTransactions.push(newTransaction);
-                } else {
-                    // Если транзакция существует, добавляем её в обновлённый список
-                    updatedTransactions.push({
-                        ...transactionFromApi,
-                        user: { id: userId },
-                        cardId,
-                    } as Transaction);
-                }
-            }
 
-            return updatedTransactions.sort((a, b) => +b.time - +a.time);
-        // }
-
-        // console.log('[TransactionService] transactions info can`t be updated');
         return existingTransactions?.sort((a, b) => +b.time - +a.time) ?? [];
     }
 
