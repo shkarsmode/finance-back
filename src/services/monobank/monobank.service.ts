@@ -63,12 +63,12 @@ export class MonobankService {
         cardId: string,
         dateStart: number,
         dateEnd: number,
-    ): Promise<ITransaction[]> {
+    ): Promise<{ data: ITransaction[]; status: number }> {
         const url = `${this.monobankApi}/personal/statement/${cardId}/${dateStart}/${dateEnd}`;
 
         const response = await firstValueFrom(
             this.httpService
-                .get<ITransaction[]>(url, {
+                .get(url, {
                     headers: { 'X-Token': monobankToken },
                     timeout: 10000,
                 })
@@ -80,11 +80,11 @@ export class MonobankService {
                             '[MonobankService] Transactions fetch failed:',
                             error.message,
                         );
-                        return of({ data: [] as ITransaction[] });
+                        return of({ data: [] as ITransaction[], status: 429 });
                     }),
                 ),
         );
 
-        return response.data;
+        return { data: response.data, status: response?.status ?? 200 };
     }
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ITransaction } from 'src/interfaces';
 import { Between, Repository } from 'typeorm';
 import { MonobankService } from '../../services/monobank/monobank.service';
 import { User } from '../user/entities/user.entity';
@@ -21,11 +22,14 @@ export class TransactionService {
         cardId: string,
         month?: number,
         year?: number,
-    ): Promise<Transaction[]> {
+    ): Promise<ITransaction[]> {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month, year);
 
-        const [existingTransactions, transactionsFromApi] = await Promise.all([
+        const [existingTransactions, transactionsFromApi]: [
+            ITransaction[],
+            { data: ITransaction[]; status: number },
+        ] = await Promise.all([
             this.transactionRepository.find({
                 where: {
                     time: Between(
@@ -45,58 +49,61 @@ export class TransactionService {
             ),
         ]);
 
-        const updateTimeToCheck = new Date().getTime() - 120000; // 2 минуты
-        console.log('existingTransactions', existingTransactions.length);
-        console.log('Transactions from api', transactionsFromApi.length);
+        // const updateTimeToCheck = new Date().getTime() - 120000;
+        // console.log('existingTransactions', existingTransactions.length);
 
-        if (transactionsFromApi.length) {
-            console.log(
-                '[TransactionService] transactions info can be updated',
-            );
-        } else {
-            console.log(
-                '[TransactionService] transactions info can`t be updated',
-            );
+        if (transactionsFromApi.status === 200 && transactionsFromApi.data.length === 0) {
+            console.log('[TransactionService] transactions from api is empty');
+            return existingTransactions
         }
-
-        const updatedTransactions: Transaction[] = [];
 
         if (
-            transactionsFromApi.length === 0 || transactionsFromApi?.length ===
-            existingTransactions?.length
+            transactionsFromApi.status === 200 &&
+            transactionsFromApi.data.length &&
+            transactionsFromApi.data.length === existingTransactions.length
         ) {
+            console.log(
+                '[TransactionService] transactions from api is equal to existing transactions',
+            );
             return existingTransactions;
         }
-        
 
-        const newTransactions: Transaction[] = [];
+        if (transactionsFromApi.status === 429) {
+            console.log('[TransactionService] Too many requests to monobank api');
+            return existingTransactions;
+        }
 
-        for (const t of transactionsFromApi) {
-            const isExisting = existingTransactions.some(
-                (et) => et.id === t.id,
-            );
+        if (
+            transactionsFromApi.status === 200 &&
+            transactionsFromApi.data.length > existingTransactions.length
+        ) {
+            console.log('[TransactionService] New transactions from api found');
+        }
 
-            const transactionData = {
+        const updatedTransactions: Transaction[] = transactionsFromApi.data.map(
+            (t) => ({
                 ...t,
                 user: { id: userId },
                 cardId,
-            } as Transaction;
+            }),
+        ) as Transaction[];
 
-            updatedTransactions.push(transactionData);
+        const existingIds = new Set(existingTransactions.map((t) => t.id));
 
-            if (!isExisting) {
-                newTransactions.push(transactionData);
-            }
-        }
+        const newTransactions = updatedTransactions.filter(
+            (t) => !existingIds.has(t.id),
+        );
 
         if (newTransactions.length > 0) {
-            await this.transactionRepository.save(newTransactions);
+            this.transactionRepository.save(newTransactions).catch((err) => {
+                console.error(
+                    '[TransactionService] Failed to save transactions',
+                    err,
+                );
+            });
         }
 
         return updatedTransactions.sort((a, b) => +b.time - +a.time);
-
-
-        return existingTransactions?.sort((a, b) => +b.time - +a.time) ?? [];
     }
 
     private getStartAndEndDateBasedOnMonthNumber(
