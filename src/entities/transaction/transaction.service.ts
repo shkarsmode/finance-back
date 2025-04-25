@@ -22,7 +22,7 @@ export class TransactionService {
         cardId: string,
         month?: number,
         year?: number,
-    ): Promise<ITransaction[]> {
+    ): Promise<{ data: ITransaction[], status: number, message: string }> {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month, year);
 
@@ -54,7 +54,11 @@ export class TransactionService {
 
         if (transactionsFromApi.status === 200 && transactionsFromApi.data.length === 0) {
             console.log('[TransactionService] transactions from api is empty');
-            return existingTransactions
+            return {
+                data: existingTransactions,
+                status: 200,
+                message: `No transactions for this period [month: ${month}, year: ${year}]`,
+            };
         }
 
         if (
@@ -65,12 +69,20 @@ export class TransactionService {
             console.log(
                 '[TransactionService] transactions from api is equal to existing transactions',
             );
-            return existingTransactions;
+            return {
+                data: existingTransactions,
+                status: 200,
+                message: `Transactions are up to date [month: ${month}, year: ${year}]`,
+            };
         }
 
         if (transactionsFromApi.status === 429) {
             console.log('[TransactionService] Too many requests to monobank api');
-            return existingTransactions;
+            return {
+                data: existingTransactions,
+                status: 429,
+                message: `Too many requests to monobank api [month: ${month}, year: ${year}]`,
+            };
         }
 
         if (
@@ -103,7 +115,11 @@ export class TransactionService {
             });
         }
 
-        return updatedTransactions.sort((a, b) => +b.time - +a.time);
+        return {
+            data: updatedTransactions.sort((a, b) => +b.time - +a.time),
+            status: 200,
+            message: `New transactions from monobank api found [month: ${month}, year: ${year}]`,
+        };
     }
 
     private getStartAndEndDateBasedOnMonthNumber(

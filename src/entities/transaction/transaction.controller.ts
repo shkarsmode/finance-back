@@ -1,8 +1,8 @@
 import { Controller, Get, Headers, Param, UseGuards } from '@nestjs/common';
 
+import { ITransaction } from 'src/interfaces';
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Transaction } from './entities/transaction.entity';
 import { TransactionService } from './transaction.service';
 
 @Controller('transaction')
@@ -19,7 +19,7 @@ export class TransactionController {
         @Param('month') month: string,
         @Param('year') year: string,
         @Headers('authorization') authorization: string,
-    ): Promise<Transaction[]> {
+    ): Promise<{ data: ITransaction[], status: number, message: string }> {
         const token = authorization.split(' ')[1];
 
         const userId = +this.authService.getUserFieldFromToken(
@@ -31,7 +31,7 @@ export class TransactionController {
             'monobankToken',
         ) as string;
 
-        const transactions = await this.transactionService.get(
+        const response = await this.transactionService.get(
             userId,
             monobankToken,
             cardId,
@@ -39,6 +39,6 @@ export class TransactionController {
             year ? +year : undefined,
         );
 
-        return transactions;
+        return response;
     }
 }
