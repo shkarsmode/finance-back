@@ -57,7 +57,7 @@ export class TransactionService {
             return {
                 data: existingTransactions,
                 status: 200,
-                message: `No transactions for this period [month: ${month}, year: ${year}]`,
+                message: `No transactions for this period [start: ${startDate}, end: ${endDate}]`,
             };
         }
 
@@ -72,7 +72,7 @@ export class TransactionService {
             return {
                 data: existingTransactions,
                 status: 200,
-                message: `Transactions are up to date [month: ${month}, year: ${year}]`,
+                message: `Transactions are up to date [start: ${startDate}, end: ${endDate}]`,
             };
         }
 
@@ -81,7 +81,7 @@ export class TransactionService {
             return {
                 data: existingTransactions,
                 status: 429,
-                message: `Too many requests to monobank api [month: ${month}, year: ${year}]`,
+                message: `Too many requests to monobank api [start: ${startDate}, end: ${endDate}]`,
             };
         }
 
@@ -118,7 +118,7 @@ export class TransactionService {
         return {
             data: updatedTransactions.sort((a, b) => +b.time - +a.time),
             status: 200,
-            message: `New transactions from monobank api found [month: ${month}, year: ${year}]`,
+            message: `New transactions from monobank api found [start: ${startDate}, end: ${endDate}]`,
         };
     }
 
