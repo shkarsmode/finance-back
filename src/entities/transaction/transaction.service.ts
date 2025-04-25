@@ -26,6 +26,9 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month, year);
 
+        const transactionYear = startDate.getFullYear();
+        const transactionMonth = startDate.getMonth() + 1;
+
         const [existingTransactions, transactionsFromApi]: [
             ITransaction[],
             { data: ITransaction[]; status: number },
@@ -57,7 +60,7 @@ export class TransactionService {
             return {
                 data: existingTransactions,
                 status: 200,
-                message: `No transactions for this period [start: ${startDate}, end: ${endDate}]`,
+                message: `No transactions for this period (${transactionYear} / ${transactionMonth})`,
             };
         }
 
@@ -72,7 +75,7 @@ export class TransactionService {
             return {
                 data: existingTransactions,
                 status: 200,
-                message: `Transactions are up to date [start: ${startDate}, end: ${endDate}]`,
+                message: `Transactions are up to date (${transactionYear} / ${transactionMonth})`,
             };
         }
 
@@ -81,7 +84,7 @@ export class TransactionService {
             return {
                 data: existingTransactions,
                 status: 429,
-                message: `Too many requests to monobank api [start: ${startDate}, end: ${endDate}]`,
+                message: `Too many requests to monobank api (${transactionYear} / ${transactionMonth})`,
             };
         }
 
@@ -118,7 +121,7 @@ export class TransactionService {
         return {
             data: updatedTransactions.sort((a, b) => +b.time - +a.time),
             status: 200,
-            message: `New transactions from monobank api found [start: ${startDate}, end: ${endDate}]`,
+            message: `New transactions from monobank api found (${transactionYear} / ${transactionMonth})`,
         };
     }
 
