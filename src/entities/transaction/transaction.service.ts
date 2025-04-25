@@ -25,7 +25,6 @@ export class TransactionService {
         const { startDate, endDate } =
             this.getStartAndEndDateBasedOnMonthNumber(month, year);
 
-        // Запрос существующих транзакций параллельно с запросом через API
         const [existingTransactions, transactionsFromApi] = await Promise.all([
             this.transactionRepository.find({
                 where: {
@@ -48,11 +47,7 @@ export class TransactionService {
 
         const updateTimeToCheck = new Date().getTime() - 120000; // 2 минуты
         console.log('existingTransactions', existingTransactions.length);
-
-        // Если прошло достаточно времени, обновляем данные
-        // if (
-        //     this.monobankService.lastRequestTransactionsTime < updateTimeToCheck
-        // ) {
+        console.log('Transactions from api', transactionsFromApi.length);
 
         if (transactionsFromApi.length) {
             console.log(
@@ -66,20 +61,20 @@ export class TransactionService {
 
         const updatedTransactions: Transaction[] = [];
 
-        // Если транзакции совпадают по количеству, возвращаем старые
-        if (transactionsFromApi?.length === existingTransactions?.length) {
+        if (
+            transactionsFromApi.length === 0 || transactionsFromApi?.length ===
+            existingTransactions?.length
+        ) {
             return existingTransactions;
         }
         
 
-        // Обработка новых транзакций
         for (const transactionFromApi of transactionsFromApi) {
             const existingTransaction = existingTransactions.find(
                 (t) => t.id === transactionFromApi.id,
             );
 
             if (!existingTransaction) {
-                // Создаём новую транзакцию
                 const newTransaction = this.transactionRepository.create({
                     ...transactionFromApi,
                     user: { id: userId },
@@ -88,7 +83,6 @@ export class TransactionService {
                 await this.transactionRepository.save(newTransaction);
                 updatedTransactions.push(newTransaction);
             } else {
-                // Если транзакция существует, добавляем её в обновлённый список
                 updatedTransactions.push({
                     ...transactionFromApi,
                     user: { id: userId },
