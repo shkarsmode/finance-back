@@ -69,26 +69,28 @@ export class TransactionService {
         }
         
 
-        for (const transactionFromApi of transactionsFromApi) {
-            const existingTransaction = existingTransactions.find(
-                (t) => t.id === transactionFromApi.id,
+        const newTransactions: Transaction[] = [];
+
+        for (const t of transactionsFromApi) {
+            const isExisting = existingTransactions.some(
+                (et) => et.id === t.id,
             );
 
-            if (!existingTransaction) {
-                const newTransaction = this.transactionRepository.create({
-                    ...transactionFromApi,
-                    user: { id: userId },
-                    cardId,
-                });
-                await this.transactionRepository.save(newTransaction);
-                updatedTransactions.push(newTransaction);
-            } else {
-                updatedTransactions.push({
-                    ...transactionFromApi,
-                    user: { id: userId },
-                    cardId,
-                } as Transaction);
+            const transactionData = {
+                ...t,
+                user: { id: userId },
+                cardId,
+            } as Transaction;
+
+            updatedTransactions.push(transactionData);
+
+            if (!isExisting) {
+                newTransactions.push(transactionData);
             }
+        }
+
+        if (newTransactions.length > 0) {
+            await this.transactionRepository.save(newTransactions);
         }
 
         return updatedTransactions.sort((a, b) => +b.time - +a.time);
