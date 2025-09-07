@@ -9,6 +9,7 @@ import { Transaction } from './entities/transaction/entities/transaction.entity'
 import { TransactionModule } from './entities/transaction/transaction.module';
 import { User } from './entities/user/entities/user.entity';
 import { UserModule } from './entities/user/user.module';
+import { AnalyticsModule } from './entities/analytics/analytics.module';
 
 
 @Module({
@@ -40,6 +41,7 @@ import { UserModule } from './entities/user/user.module';
         TransactionModule,
         AuthModule,
         CurrencyModule,
+        AnalyticsModule,
     ],
     controllers: [AppController],
     providers: [],

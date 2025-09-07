@@ -71,3 +71,41 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](LICENSE).
+
+
+## New Route: Analytics MCC Table
+
+**Endpoint:** `GET /analytics/mcc-table` (JWT protected)
+
+**Query Params:**
+- `from`: ISO date (e.g., `2024-01-01`) or unix seconds.
+- `to`: ISO date (inclusive) or unix seconds.
+- `mcc`: optional comma-separated list, e.g., `5411,5499,5814`.
+
+**Response:**
+```json
+{
+  "params": { "from": "2024-01-01", "to": "2024-12-31", "mccs": [5411,5499] },
+  "totals": { "totalSpent": -1234.56, "totalIncome": 0, "net": -1234.56, "txCount": 42 },
+  "rows": [
+    { "mcc": 5411, "txCount": 20, "totalSpent": -800.00, "totalIncome": 0, "net": -800.00, "avgAbs": 40, 
+      "topMerchants": [ { "name": "Сільпо", "total": -500 }, { "name": "Ашан", "total": -300 } ]
+    }
+  ]
+}
+```
+Notes:
+- Amounts are in UAH, primary units.
+- Time range is adjusted internally by -3h to match existing DB convention.
+
+
+## New Analytics Endpoint: MCC Table
+
+`GET /analytics/mcc-table` (JWT protected)
+
+Query:
+- `from` ISO date or unix seconds
+- `to` ISO date or unix seconds
+- `mcc` optional CSV list, e.g. `5411,5499,5814`
+
+Returns totals and per-MCC rows with txCount, totalSpent, totalIncome, net, avgAbs, topMerchants (top-5).
