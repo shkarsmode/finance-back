@@ -33,24 +33,31 @@ export class AnalyticsService {
     const toSec = parseDateOrUnix(params.to);
 
     const where: any = { user: { id: params.userId } };
+
+    // диапазон дат (inclusive)
     if (fromSec && toSec) where.time = Between(String(fromSec), String(toSec));
     else if (fromSec) where.time = Between(String(fromSec), String(32503680000));
     else if (toSec) where.time = Between('0', String(toSec));
 
-    if (params.mccs && params.mccs.length) where.mcc = In(params.mccs);
+    // фильтр по MCC (если задан)
+    if (params.mccs?.length) where.mcc = In(params.mccs);
+
+    // ✅ фильтр по валюте: только UAH (ISO 4217 = 980). В БД может быть строка '980' или число 980.
+    where.currencyCode = In(['980', 980] as any);
 
     const rows = await this.txRepo.find({
       where,
       relations: ['user'],
       select: [
-        'id', 'time', 'description', 'mcc', 'amount', 'operationAmount',
-        'currencyCode', 'commissionRate', 'cashbackAmount', 'balance',
+        'id', 'time', 'description', 'mcc',
+        'amount', 'operationAmount', 'currencyCode',
+        'commissionRate', 'cashbackAmount', 'balance',
         'hold', 'comment', 'cardId'
       ] as any,
       order: { time: 'DESC' } as any,
     });
 
-    const byMcc: Record<number, { 
+    const byMcc: Record<number, {
       mcc: number;
       txCount: number;
       totalSpent: number;
@@ -63,7 +70,9 @@ export class AnalyticsService {
     for (const r of rows) {
       const mcc = Number((r as any).mcc) || 0;
       const amount = Number((r as any).amount) / 100;
-      const merchant = (r as any).counterName || (r as any).description || '—';
+
+      // ✅ merchant без counterName (его нет в сущности)
+      const merchant = (r as any).description || (r as any).comment || '—';
 
       if (!byMcc[mcc]) {
         byMcc[mcc] = { mcc, txCount: 0, totalSpent: 0, totalIncome: 0, net: 0, avgAbs: 0, topMerchants: {} };
@@ -72,15 +81,16 @@ export class AnalyticsService {
       byMcc[mcc].net += amount;
       if (amount < 0) byMcc[mcc].totalSpent += amount;
       else byMcc[mcc].totalIncome += amount;
+
       byMcc[mcc].topMerchants[merchant] = (byMcc[mcc].topMerchants[merchant] || 0) + amount;
     }
 
     const rowsOut = Object.values(byMcc).map(x => {
       const avgAbs = x.txCount ? (Math.abs(x.totalSpent) + x.totalIncome) / x.txCount : 0;
       const tops = Object.entries(x.topMerchants)
-        .sort((a,b)=>Math.abs(a[1])<Math.abs(b[1])?1:-1)
-        .slice(0,5)
-        .map(([name,val])=>({ name, total: Number(val.toFixed(2)) }));
+        .sort((a, b) => Math.abs(a[1]) < Math.abs(b[1]) ? 1 : -1)
+        .slice(0, 5)
+        .map(([name, val]) => ({ name, total: Number(val.toFixed(2)) }));
       return {
         mcc: x.mcc,
         txCount: x.txCount,
@@ -90,15 +100,14 @@ export class AnalyticsService {
         avgAbs: Number(avgAbs.toFixed(2)),
         topMerchants: tops,
       };
-    }).sort((a,b)=>a.totalSpent < b.totalSpent ? 1 : -1);
+    }).sort((a, b) => a.totalSpent < b.totalSpent ? 1 : -1);
 
-    const totals = rowsOut.reduce((acc, r)=>{
-      acc.totalSpent += r.totalSpent;
-      acc.totalIncome += r.totalIncome;
-      acc.net += r.net;
-      acc.txCount += r.txCount;
-      return acc;
-    }, { totalSpent:0, totalIncome:0, net:0, txCount:0 });
+    const totals = rowsOut.reduce((acc, r) => ({
+      totalSpent: acc.totalSpent + r.totalSpent,
+      totalIncome: acc.totalIncome + r.totalIncome,
+      net: acc.net + r.net,
+      txCount: acc.txCount + r.txCount,
+    }), { totalSpent: 0, totalIncome: 0, net: 0, txCount: 0 });
 
     return { params, totals, rows: rowsOut };
   }
