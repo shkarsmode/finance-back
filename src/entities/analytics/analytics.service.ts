@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, Repository } from 'typeorm';
 import { Transaction } from '../transaction/entities/transaction.entity';
@@ -45,7 +45,7 @@ export class AnalyticsService {
       select: [
         'id', 'time', 'description', 'mcc', 'amount', 'operationAmount',
         'currencyCode', 'commissionRate', 'cashbackAmount', 'balance',
-        'hold', 'counterName', 'counterIban', 'comment', 'cardId'
+        'hold', 'comment', 'cardId'
       ] as any,
       order: { time: 'DESC' } as any,
     });
