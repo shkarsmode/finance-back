@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, In, Repository } from 'typeorm';
+import { Between, DataSource, In, Repository } from 'typeorm';
 import { Transaction } from '../transaction/entities/transaction.entity';
+import { MonthlyTrendQueryDto } from './dto/analytics.dto';
 
 type MccTableParams = {
     userId: number;
@@ -21,11 +22,20 @@ function parseDateOrUnix(input?: string): number | undefined {
     return Math.floor(d.getTime() / 1000);
 }
 
+export interface MonthlyPoint {
+    year: number;
+    month: number;
+    income: number;   // positive abs sum of incoming
+    expense: number;  // positive abs sum of outgoing
+    tx: number;
+}
+
 @Injectable()
 export class AnalyticsService {
     constructor(
         @InjectRepository(Transaction)
         private readonly txRepo: Repository<Transaction>,
+        private readonly ds: DataSource
     ) { }
 
     isIsoDate(s?: string) {
@@ -126,5 +136,84 @@ export class AnalyticsService {
         }), { totalSpent: 0, totalIncome: 0, net: 0, txCount: 0 });
 
         return { params, totals, rows: rowsOut };
+    }
+
+    async getMonthlyTrend(userId: number, q: MonthlyTrendQueryDto): Promise<MonthlyPoint[]> {
+        const { from, to, kind, key } = q;
+
+        // SAFETY: clamp to dates, treat 'to' as exclusive next-day
+        const fromISO = new Date(from + 'T00:00:00.000Z').toISOString();
+        const toDate = new Date(to + 'T00:00:00.000Z');
+        const toNext = new Date(toDate.getTime() + 24 * 3600 * 1000).toISOString();
+
+        // Dynamic filter by target
+        const targetColumn = kind === 'mcc' ? 't.mcc' : 't.merchant';
+        const isMcc = kind === 'mcc';
+        const targetValue = isMcc ? Number(key) : key;
+
+        // If your `time` is stored as Unix seconds (string/number), use to_timestamp(CAST(t.time AS BIGINT)).
+        // If it's already timestamp, drop to_timestamp(...).
+        const rows = await this.ds.query(
+            `
+            SELECT
+                EXTRACT(YEAR  FROM date_trunc('month', to_timestamp(CAST(t.time AS BIGINT))))::int AS year,
+                EXTRACT(MONTH FROM date_trunc('month', to_timestamp(CAST(t.time AS BIGINT))))::int AS month,
+                -- income: sum of positive amounts (abs)
+                COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0)::bigint AS income_raw,
+                -- expense: sum of negative amounts (abs)
+                COALESCE(SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END), 0)::bigint AS expense_raw,
+                COUNT(*)::int AS tx
+            FROM transactions t
+            WHERE
+                t.user_id = $1
+                AND to_timestamp(CAST(t.time AS BIGINT)) >= $2::timestamptz
+                AND to_timestamp(CAST(t.time AS BIGINT)) <  $3::timestamptz
+                AND ${targetColumn} = $4
+            GROUP BY 1, 2
+            ORDER BY 1, 2
+            `,
+            [userId, fromISO, toNext, targetValue]
+        );
+
+        // Map into API shape; if хранятся копейки — конвертни тут в гривны/рубли при необходимости
+        const points: MonthlyPoint[] = rows.map((r: any) => ({
+            year: Number(r.year),
+            month: Number(r.month),
+            income: Math.abs(Number(r.income_raw)),
+            expense: Math.abs(Number(r.expense_raw)),
+            tx: Number(r.tx),
+        }));
+
+        // Optionally: ensure every month in [from..to] exists (fill gaps with zeros)
+        return this.fillMonthGaps(from, to, points);
+    }
+
+    private fillMonthGaps(fromISO: string, toISO: string, points: MonthlyPoint[]): MonthlyPoint[] {
+        const byKey = new Map<string, MonthlyPoint>();
+        for (const p of points) byKey.set(`${p.year}-${p.month}`, p);
+
+        const fromDate = new Date(fromISO + 'T00:00:00.000Z');
+        const toDate = new Date(toISO + 'T00:00:00.000Z');
+
+        const result: MonthlyPoint[] = [];
+        let y = fromDate.getUTCFullYear();
+        let m = fromDate.getUTCMonth() + 1;
+
+        const endY = toDate.getUTCFullYear();
+        const endM = toDate.getUTCMonth() + 1;
+
+        while (y < endY || (y === endY && m <= endM)) {
+            const key = `${y}-${m}`;
+            const found = byKey.get(key);
+            if (found) {
+                result.push(found);
+            } else {
+                result.push({ year: y, month: m, income: 0, expense: 0, tx: 0 });
+            }
+            m++;
+            if (m > 12) { m = 1; y++; }
+        }
+
+        return result;
     }
 }
