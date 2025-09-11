@@ -11,6 +11,8 @@ type MccTableParams = {
     mccs?: number[];
 };
 
+const MERCHANT_TEXT_COL = 'description'; 
+
 function parseDateOrUnix(input?: string): number | undefined {
     if (!input) return undefined;
     if (/^\d{10,13}$/.test(input)) {
@@ -139,74 +141,56 @@ export class AnalyticsService {
     }
 
     async getMonthlyTrend(userId: number, q: MonthlyTrendQueryDto): Promise<MonthlyPoint[]> {
-        const { from, to, kind, key } = q;
-
-        // SAFETY: clamp to dates, treat 'to' as exclusive next-day
-        const fromISO = new Date(from + 'T00:00:00.000Z').toISOString();
-        const toDate = new Date(to + 'T00:00:00.000Z');
+        const isMcc = q.kind === 'mcc';
+        const fromISO = new Date(q.from + 'T00:00:00.000Z').toISOString();
+        const toDate = new Date(q.to + 'T00:00:00.000Z');
         const toNext = new Date(toDate.getTime() + 24 * 3600 * 1000).toISOString();
 
-        // Dynamic filter by target
-        const targetColumn = kind === 'mcc' ? 't.mcc' : 't.merchant';
-        const isMcc = kind === 'mcc';
-        const targetValue = isMcc ? Number(key) : key;
+        const targetValue = isMcc ? String(q.key) : String(q.key);
 
-        // If your `time` is stored as Unix seconds (string/number), use to_timestamp(CAST(t.time AS BIGINT)).
-        // If it's already timestamp, drop to_timestamp(...).
-        const rows = await this.ds.query(
-            `
+        // динамический кусок WHERE подставляем как текст:
+        const targetFilterSql = isMcc
+            ? `AND NULLIF(t.mcc, '') = $4`
+            : `AND NULLIF(t.${MERCHANT_TEXT_COL}, '') = $4`;  // <— тут используем выбранную колонку
+
+        const sql = `
             WITH src AS (
                 SELECT
-                    -- время
                     date_trunc('month', to_timestamp(NULLIF(t.time, '')::bigint)) AS month_ts,
-                    -- суммы как numeric (если у тебя копейки и хочешь bigint — замени на ::bigint)
                     COALESCE(NULLIF(t.amount, '')::numeric, 0) AS amount_num,
-                    -- mcc как text для сравнения или каста ниже
-                    NULLIF(t.mcc, '') AS mcc_txt,
-                    t.merchant,
                     t.user_id
                 FROM transactions t
                 WHERE
                     t.user_id = $1
                     AND to_timestamp(NULLIF(t.time, '')::bigint) >= $2::timestamptz
                     AND to_timestamp(NULLIF(t.time, '')::bigint) <  $3::timestamptz
-                    AND (
-                        ($5 = 'mcc'      AND NULLIF(t.mcc, '') = $4) OR
-                        ($5 = 'merchant' AND t.merchant = $4)
-                    )
+                    ${targetFilterSql}
             )
             SELECT
-                EXTRACT(YEAR  FROM month_ts)::int  AS year,
-                EXTRACT(MONTH FROM month_ts)::int  AS month,
-                -- income: сумма положительных
+                EXTRACT(YEAR  FROM month_ts)::int AS year,
+                EXTRACT(MONTH FROM month_ts)::int AS month,
                 COALESCE(SUM(CASE WHEN amount_num > 0 THEN amount_num ELSE 0 END), 0)::numeric AS income_raw,
-                -- expense: сумма отрицательных по модулю
                 COALESCE(SUM(CASE WHEN amount_num < 0 THEN -amount_num ELSE 0 END), 0)::numeric AS expense_raw,
                 COUNT(*)::int AS tx
             FROM src
             GROUP BY 1, 2
-            ORDER BY 1, 2
-            `,
-            [
-                userId,                     // $1
-                fromISO,                    // $2
-                toNext,                     // $3
-                kind === 'mcc' ? String(key) : String(key), // $4 сравниваем как text
-                kind                        // $5 'mcc' | 'merchant'
-            ]
-        );
+            ORDER BY 1, 2;
+        `;
 
-        // Map into API shape; if хранятся копейки — конвертни тут в гривны/рубли при необходимости
-        const points: MonthlyPoint[] = rows.map((r: any) => ({
+        const rows = await this.ds.query(sql, [
+            userId,     // $1
+            fromISO,    // $2
+            toNext,     // $3
+            targetValue // $4
+        ]);
+
+        return this.fillMonthGaps(q.from, q.to, rows.map((r: any) => ({
             year: Number(r.year),
             month: Number(r.month),
             income: Number(r.income_raw),
             expense: Number(r.expense_raw),
             tx: Number(r.tx),
-        }));
-
-        // Optionally: ensure every month in [from..to] exists (fill gaps with zeros)
-        return this.fillMonthGaps(from, to, points);
+})));
     }
 
     private fillMonthGaps(fromISO: string, toISO: string, points: MonthlyPoint[]): MonthlyPoint[] {
