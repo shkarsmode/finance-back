@@ -155,32 +155,53 @@ export class AnalyticsService {
         // If it's already timestamp, drop to_timestamp(...).
         const rows = await this.ds.query(
             `
+            WITH src AS (
+                SELECT
+                    -- время
+                    date_trunc('month', to_timestamp(NULLIF(t.time, '')::bigint)) AS month_ts,
+                    -- суммы как numeric (если у тебя копейки и хочешь bigint — замени на ::bigint)
+                    COALESCE(NULLIF(t.amount, '')::numeric, 0) AS amount_num,
+                    -- mcc как text для сравнения или каста ниже
+                    NULLIF(t.mcc, '') AS mcc_txt,
+                    t.merchant,
+                    t.user_id
+                FROM transactions t
+                WHERE
+                    t.user_id = $1
+                    AND to_timestamp(NULLIF(t.time, '')::bigint) >= $2::timestamptz
+                    AND to_timestamp(NULLIF(t.time, '')::bigint) <  $3::timestamptz
+                    AND (
+                        ($5 = 'mcc'      AND NULLIF(t.mcc, '') = $4) OR
+                        ($5 = 'merchant' AND t.merchant = $4)
+                    )
+            )
             SELECT
-                EXTRACT(YEAR  FROM date_trunc('month', to_timestamp(CAST(t.time AS BIGINT))))::int AS year,
-                EXTRACT(MONTH FROM date_trunc('month', to_timestamp(CAST(t.time AS BIGINT))))::int AS month,
-                -- income: sum of positive amounts (abs)
-                COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0)::bigint AS income_raw,
-                -- expense: sum of negative amounts (abs)
-                COALESCE(SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END), 0)::bigint AS expense_raw,
+                EXTRACT(YEAR  FROM month_ts)::int  AS year,
+                EXTRACT(MONTH FROM month_ts)::int  AS month,
+                -- income: сумма положительных
+                COALESCE(SUM(CASE WHEN amount_num > 0 THEN amount_num ELSE 0 END), 0)::numeric AS income_raw,
+                -- expense: сумма отрицательных по модулю
+                COALESCE(SUM(CASE WHEN amount_num < 0 THEN -amount_num ELSE 0 END), 0)::numeric AS expense_raw,
                 COUNT(*)::int AS tx
-            FROM transactions t
-            WHERE
-                t.user_id = $1
-                AND to_timestamp(CAST(t.time AS BIGINT)) >= $2::timestamptz
-                AND to_timestamp(CAST(t.time AS BIGINT)) <  $3::timestamptz
-                AND ${targetColumn} = $4
+            FROM src
             GROUP BY 1, 2
             ORDER BY 1, 2
             `,
-            [userId, fromISO, toNext, targetValue]
+            [
+                userId,                     // $1
+                fromISO,                    // $2
+                toNext,                     // $3
+                kind === 'mcc' ? String(key) : String(key), // $4 сравниваем как text
+                kind                        // $5 'mcc' | 'merchant'
+            ]
         );
 
         // Map into API shape; if хранятся копейки — конвертни тут в гривны/рубли при необходимости
         const points: MonthlyPoint[] = rows.map((r: any) => ({
             year: Number(r.year),
             month: Number(r.month),
-            income: Math.abs(Number(r.income_raw)),
-            expense: Math.abs(Number(r.expense_raw)),
+            income: Number(r.income_raw),
+            expense: Number(r.expense_raw),
             tx: Number(r.tx),
         }));
 
