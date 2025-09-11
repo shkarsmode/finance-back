@@ -140,31 +140,67 @@ export class AnalyticsService {
         return { params, totals, rows: rowsOut };
     }
 
+    private fillMonthGaps(fromISO: string, toISO: string, points: MonthlyPoint[]): MonthlyPoint[] {
+        const byKey = new Map<string, MonthlyPoint>();
+        for (const p of points) byKey.set(`${p.year}-${p.month}`, p);
+
+        const fromDate = new Date(fromISO + 'T00:00:00.000Z');
+        const toDate = new Date(toISO + 'T00:00:00.000Z');
+
+        const res: MonthlyPoint[] = [];
+        let y = fromDate.getUTCFullYear();
+        let m = fromDate.getUTCMonth() + 1;
+        const endY = toDate.getUTCFullYear();
+        const endM = toDate.getUTCMonth() + 1;
+
+        while (y < endY || (y === endY && m <= endM)) {
+            const key = `${y}-${m}`;
+            res.push(byKey.get(key) ?? { year: y, month: m, income: 0, expense: 0, tx: 0 });
+            m++; if (m > 12) { m = 1; y++; }
+        }
+        return res;
+    }
+
+    /**
+     * Returns MonthlyPoint[] grouped by (year, month).
+     * IMPORTANT: set the column names below to match your DB exactly.
+     */
     async getMonthlyTrend(userId: number, q: MonthlyTrendQueryDto): Promise<MonthlyPoint[]> {
+        // ---- 🔧 COLUMN MAP (set once, then forget) ----
+        // If your columns are camelCase created with quotes, KEEP the double quotes here.
+        const TABLE = 'transactions';           // or, for quoted: '"transactions"'
+        const COL_USER_ID = '"userId"';         // e.g. '"userId"'  | or 'user_id'
+        const COL_TIME = '"time"';              // text/varchar seconds since epoch (quote if named "time")
+        const COL_AMOUNT = '"amount"';          // varchar/numeric
+        const COL_MCC = '"mcc"';                // varchar/int
+        const COL_MERCHANT_TXT = '"description"'; // set to your real text column with merchant/counterparty name
+        // ------------------------------------------------
+
         const isMcc = q.kind === 'mcc';
+        const targetValue = String(q.key);
+
+        // Inclusive [from..to], implement as [from, to+1d)
         const fromISO = new Date(q.from + 'T00:00:00.000Z').toISOString();
         const toDate = new Date(q.to + 'T00:00:00.000Z');
         const toNext = new Date(toDate.getTime() + 24 * 3600 * 1000).toISOString();
 
-        const targetValue = isMcc ? String(q.key) : String(q.key);
+        // Build target filter (string-literal injected for identifier, NOT a param)
+        const byTarget = isMcc
+            ? `AND NULLIF(t.${COL_MCC}, '') = $4`
+            : `AND NULLIF(t.${COL_MERCHANT_TXT}, '') = $4`;
 
-        // динамический кусок WHERE подставляем как текст:
-        const targetFilterSql = isMcc
-            ? `AND NULLIF(t.mcc, '') = $4`
-            : `AND NULLIF(t.${MERCHANT_TEXT_COL}, '') = $4`;  // <— тут используем выбранную колонку
-
+        // Full SQL with explicit casts. All identifiers are injected from whitelisted constants above.
         const sql = `
             WITH src AS (
                 SELECT
-                    date_trunc('month', to_timestamp(NULLIF(t.time, '')::bigint)) AS month_ts,
-                    COALESCE(NULLIF(t.amount, '')::numeric, 0) AS amount_num,
-                    t.user_id
-                FROM transactions t
+                    date_trunc('month', to_timestamp(NULLIF(t.${COL_TIME}, '')::bigint)) AS month_ts,
+                    COALESCE(NULLIF(t.${COL_AMOUNT}, '')::numeric, 0) AS amount_num
+                FROM ${TABLE} t
                 WHERE
-                    t.user_id = $1
-                    AND to_timestamp(NULLIF(t.time, '')::bigint) >= $2::timestamptz
-                    AND to_timestamp(NULLIF(t.time, '')::bigint) <  $3::timestamptz
-                    ${targetFilterSql}
+                    t.${COL_USER_ID} = $1
+                    AND to_timestamp(NULLIF(t.${COL_TIME}, '')::bigint) >= $2::timestamptz
+                    AND to_timestamp(NULLIF(t.${COL_TIME}, '')::bigint) <  $3::timestamptz
+                    ${byTarget}
             )
             SELECT
                 EXTRACT(YEAR  FROM month_ts)::int AS year,
@@ -184,41 +220,14 @@ export class AnalyticsService {
             targetValue // $4
         ]);
 
-        return this.fillMonthGaps(q.from, q.to, rows.map((r: any) => ({
+        const points: MonthlyPoint[] = rows.map((r: any) => ({
             year: Number(r.year),
             month: Number(r.month),
             income: Number(r.income_raw),
             expense: Number(r.expense_raw),
             tx: Number(r.tx),
-})));
-    }
+        }));
 
-    private fillMonthGaps(fromISO: string, toISO: string, points: MonthlyPoint[]): MonthlyPoint[] {
-        const byKey = new Map<string, MonthlyPoint>();
-        for (const p of points) byKey.set(`${p.year}-${p.month}`, p);
-
-        const fromDate = new Date(fromISO + 'T00:00:00.000Z');
-        const toDate = new Date(toISO + 'T00:00:00.000Z');
-
-        const result: MonthlyPoint[] = [];
-        let y = fromDate.getUTCFullYear();
-        let m = fromDate.getUTCMonth() + 1;
-
-        const endY = toDate.getUTCFullYear();
-        const endM = toDate.getUTCMonth() + 1;
-
-        while (y < endY || (y === endY && m <= endM)) {
-            const key = `${y}-${m}`;
-            const found = byKey.get(key);
-            if (found) {
-                result.push(found);
-            } else {
-                result.push({ year: y, month: m, income: 0, expense: 0, tx: 0 });
-            }
-            m++;
-            if (m > 12) { m = 1; y++; }
-        }
-
-        return result;
+        return this.fillMonthGaps(q.from, q.to, points);
     }
 }
