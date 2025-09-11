@@ -22,23 +22,17 @@ export class TransactionService {
         cardId: string,
         month?: number,
         year?: number,
-    ): Promise<{ data: ITransaction[], status: number, message: string }> {
-        const { startDate, endDate } =
-            this.getStartAndEndDateBasedOnMonthNumber(month, year);
-
-        const transactionYear = startDate.getFullYear();
-        const transactionMonth = startDate.getMonth() + 1;
-
-        const [existingTransactions, transactionsFromApi]: [
-            ITransaction[],
-            { data: ITransaction[]; status: number },
-        ] = await Promise.all([
+    ): Promise<{ data: ITransaction[]; status: number; message: string }> {
+        const { startDate, endDate } = this.getStartAndEndDateBasedOnMonthNumber(month, year);
+    
+        // always UTC seconds; no manual -3 hours
+        const fromSec = Math.floor(startDate.getTime() / 1000);
+        const toSec = Math.floor(endDate.getTime() / 1000);
+    
+        const [existingTransactions, transactionsFromApi] = await Promise.all([
             this.transactionRepository.find({
                 where: {
-                    time: Between(
-                        startDate.setHours(startDate.getHours() - 3).toString(),
-                        endDate.setHours(endDate.getHours() - 3).toString(),
-                    ),
+                    time: Between(String(fromSec), String(toSec)), // time stored as unix seconds (string)
                     user: { id: userId },
                     cardId,
                 },
@@ -47,81 +41,48 @@ export class TransactionService {
             this.monobankService.getTransactions(
                 monobankToken,
                 cardId,
-                startDate.getTime(),
-                endDate.getTime(),
+                fromSec, // pass seconds; внутри сервиса, если нужно, умножь на 1000 для внешнего API
+                toSec
             ),
         ]);
-
-        // const updateTimeToCheck = new Date().getTime() - 120000;
-        // console.log('existingTransactions', existingTransactions.length);
-
-        if (transactionsFromApi.status === 200 && transactionsFromApi.data.length === 0) {
-            console.log('[TransactionService] transactions from api is empty');
-            return {
-                data: existingTransactions,
-                status: 200,
-                message: `No transactions for this period (${transactionYear} / ${transactionMonth})`,
-            };
-        }
-
-        if (
-            transactionsFromApi.status === 200 &&
-            transactionsFromApi.data.length &&
-            transactionsFromApi.data.length === existingTransactions.length
-        ) {
-            console.log(
-                '[TransactionService] transactions from api is equal to existing transactions',
-            );
-            return {
-                data: existingTransactions,
-                status: 200,
-                message: `Transactions are up to date (${transactionYear} / ${transactionMonth})`,
-            };
-        }
-
+    
         if (transactionsFromApi.status === 429) {
-            console.log('[TransactionService] Too many requests to monobank api');
             return {
                 data: existingTransactions,
                 status: 429,
-                message: `Too many requests to monobank api (${transactionYear} / ${transactionMonth})`,
+                message: 'Too many requests to monobank api',
             };
         }
-
-        if (
-            transactionsFromApi.status === 200 &&
-            transactionsFromApi.data.length > existingTransactions.length
-        ) {
-            console.log('[TransactionService] New transactions from api found');
-        }
-
-        const updatedTransactions: Transaction[] = transactionsFromApi.data.map(
-            (t) => ({
-                ...t,
+    
+        const incoming = (transactionsFromApi.data ?? []).map((t) => ({
+            ...t,
+            user: { id: userId },
+            cardId,
+            // ensure all critical fields are normalized here if нужны (amount, currencyCode, hold, isHidden)
+        })) as Transaction[];
+    
+        // ✅ Upsert по id (+ cardId, если id не глобально уникален)
+        // Обновляем amount/hold/description/mcc/time и т.д.
+        await this.transactionRepository.upsert(incoming, {
+            conflictPaths: ['id'], // или ['id', 'cardId'] если id уникален только в рамках карты
+            skipUpdateIfNoValuesChanged: true,
+        });
+    
+        // Берем уже консистентные данные из БД, тем же диапазоном
+        const fresh = await this.transactionRepository.find({
+            where: {
+                time: Between(String(fromSec), String(toSec)),
                 user: { id: userId },
                 cardId,
-            }),
-        ) as Transaction[];
-
-        const existingIds = new Set(existingTransactions.map((t) => t.id));
-
-        const newTransactions = updatedTransactions.filter(
-            (t) => !existingIds.has(t.id),
-        );
-
-        if (newTransactions.length > 0) {
-            this.transactionRepository.save(newTransactions).catch((err) => {
-                console.error(
-                    '[TransactionService] Failed to save transactions',
-                    err,
-                );
-            });
-        }
-
+            },
+            relations: ['user'],
+            order: { time: 'DESC' },
+        });
+    
         return {
-            data: updatedTransactions.sort((a, b) => +b.time - +a.time),
+            data: fresh,
             status: 200,
-            message: `New transactions from monobank api found (${transactionYear} / ${transactionMonth})`,
+            message: 'Transactions synced',
         };
     }
 
