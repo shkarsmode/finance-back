@@ -5,6 +5,7 @@ export class AppController {
 
     @Get()
     public async getHello(): Promise<string> {
-        return 'A finance application works!';
+        return 'A finance application works! Really';
     }
 }
+
