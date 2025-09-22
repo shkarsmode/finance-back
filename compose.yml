@@ -1,0 +1,47 @@
+services:
+    api:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: finance-api
+        env_file:
+            - .env
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: unless-stopped
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.finance-api.rule=Host(`api.91.98.164.192.nip.io`)"
+            - "traefik.http.routers.finance-api.entrypoints=websecure"
+            - "traefik.http.routers.finance-api.tls.certresolver=letsencrypt"
+            - "traefik.http.services.finance-api.loadbalancer.server.port=3000"
+            - "traefik.docker.network=proxy"
+        networks:
+            - proxy
+            - back
+
+    postgres:
+        image: postgres:15-alpine
+        container_name: finance-db
+        environment:
+            POSTGRES_DB: ${POSTGRES_DATABASE}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DATABASE}"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+        volumes:
+            - ./db:/var/lib/postgresql/data
+        restart: unless-stopped
+        networks:
+            - back
+
+networks:
+    proxy:
+        external: true
+    back:
+        external: true
+        name: finance-back
